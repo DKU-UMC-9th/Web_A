@@ -6,7 +6,7 @@ DKU UMC Web 스터디 A조
 
 |   임세윤   |   지현구   |   최지우   |   김정현   |
 | :------: | :------: | :------: | :------: |
-| [임세윤](https://github.com/seyun31) | [지현구](https://github.com/stringnine) | [최지우](https://github.com/Choijiw00) |
+| [임세윤](https://github.com/seyun31) | [지현구](https://github.com/stringnine) | [최지우](https://github.com/Choijiw00) | [김정현](https://github.com/ninininhihi) |
 
 <br/>
 
