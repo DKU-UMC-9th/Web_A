@@ -17,10 +17,11 @@ export default function MoviePage() : React.ReactElement {
     const { category } = useParams<{
         category: string;
     }>();
-    
+
     useEffect(() : void => {
         const fetchMovies = async () : Promise<void> => {
             setIsPending(true);
+            setIsError(false);
 
             try {
                 const { data } = await axios.get<MovieResponse> (
@@ -55,8 +56,8 @@ export default function MoviePage() : React.ReactElement {
         <>
             <div className="flex items-center justify-center gap-6 mt-5">
                 <button
-                    className="bg-[#dda5e3] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#b2dab1] transition-all duration-200 
-                    disabled-bg-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                    className="bg-[#dda5e3] text-white px-6 py-3 rounded-lg shadow-md hover:bg-[#b2dab1] transition-all duration-200
+                    disabled:bg-gray-300 cursor-pointer disabled:cursor-not-allowed"
                     disabled={page === 1}
                     onClick={() : void => setPage((prev) : number => prev - 1)}
                 >{`<`}</button>
