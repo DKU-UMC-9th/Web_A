@@ -1,9 +1,12 @@
 import './App.css'
+import MoviePage from './pages/MoviePage';
 
 function App() {
-  return (
+
+  return ( 
     <>
-      <h1 className='text-2xl text-amber-600'>HI</h1>
+      <MoviePage />
+
     </>
   )
 }
