@@ -2,8 +2,15 @@ import type { UserSigninInformation } from "../utils/validate";
 import { validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
+import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
+import { postSignin } from "../apis/auth";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useState } from "react";
 
 export default function LoginPage() {
+    const [showPassword, setShowPassword] = useState(false);
+    const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
             email: "",
@@ -12,8 +19,15 @@ export default function LoginPage() {
         validate: validateSignin,
     })
 
-    const handleSubmit = () => {
-        console.log(values);
+    const handleSubmit = async () => {
+        try {
+            const response = await postSignin(values);
+            console.log(response);
+            setItem(response.data.accessToken);
+        } catch (error) {
+            alert("로그인 실패");
+            console.error("로그인 실패:", error);
+        }
     };
 
     // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
@@ -59,14 +73,23 @@ export default function LoginPage() {
                 {errors?.email && touched.email && (
                     <div className="text-red-400 text-sm">{errors.email}</div>
                 )}
-                <input
-                    {...getInputProps('password')}
-                    name="password"
-                    type={"password"}
-                    className={`border border-white w-full p-[10px] focus:outline-none focus:border-[#807bff] rounded-lg bg-black text-white placeholder:text-gray-400
-                    ${errors?.password && touched?.password ? "border-red-500 bg-red-900" : ""}`}
-                    placeholder={"비밀번호"}
-                />
+                <div className="relative w-full">
+                    <input
+                        {...getInputProps('password')}
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        className={`border border-white w-full p-[10px] pr-10 focus:outline-none focus:border-[#807bff] rounded-lg bg-black text-white placeholder:text-gray-400
+                        ${errors?.password && touched?.password ? "border-red-500 bg-red-900" : ""}`}
+                        placeholder={"비밀번호"}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                        {showPassword ? <IoEyeOffOutline size={20} /> : <IoEyeOutline size={20} />}
+                    </button>
+                </div>
                 {errors?.password && touched.password && (
                     <div className="text-red-400 text-sm">{errors.password}</div>
                 )}
