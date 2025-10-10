@@ -1,7 +1,7 @@
-// src/pages/MovieDetailPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { MovieDetails, Credits, Cast, Crew } from "../types/movie";
+import { useCustomFetch } from "../hooks/useCustomFetch";
 
 const IMG = {
   poster: (p?: string | null) =>
@@ -17,53 +17,41 @@ function formatMinutes(min?: number | null) {
   return h ? `${h}h ${m}m` : `${m}m`;
 }
 
+type DetailBundle = { details: MovieDetails; credits: Credits };
+
 export default function MovieDetailPage() {
   const { movieId } = useParams<{ movieId: string }>();
   const navigate = useNavigate();
+  const depsKey = useMemo(() => movieId ?? "", [movieId]);
 
-  const [details, setDetails] = useState<MovieDetails | null>(null);
-  const [credits, setCredits] = useState<Credits | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!movieId) return;
-
+  // ✅ fetcher를 useCallback으로 고정
+  const fetchDetail = useCallback(async (): Promise<DetailBundle> => {
+    if (!movieId) throw new Error("movieId 누락");
     const token = import.meta.env.VITE_TMDB_KEY as string | undefined;
-    if (!token) {
-      setErr("환경변수 VITE_TMDB_KEY 가 설정되어 있지 않습니다.");
-      setLoading(false);
-      return;
-    }
+    if (!token) throw new Error("VITE_TMDB_KEY 가 설정되어 있지 않습니다.");
 
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      accept: "application/json",
-    };
+    const headers = { Authorization: `Bearer ${token}`, accept: "application/json" };
 
-    const detailUrl = `https://api.themoviedb.org/3/movie/${movieId}?language=ko-KR`;
-    const creditsUrl = `https://api.themoviedb.org/3/movie/${movieId}/credits?language=ko-KR`;
+    const [dRes, cRes] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/movie/${movieId}?language=ko-KR`, { headers }),
+      fetch(`https://api.themoviedb.org/3/movie/${movieId}/credits?language=ko-KR`, { headers }),
+    ]);
 
-    setLoading(true);
-    setErr(null);
+    if (!dRes.ok) throw new Error(`상세 요청 실패 (${dRes.status})`);
+    if (!cRes.ok) throw new Error(`크레딧 요청 실패 (${cRes.status})`);
 
-    Promise.all([
-      fetch(detailUrl, { headers }),
-      fetch(creditsUrl, { headers }),
-    ])
-      .then(async ([dRes, cRes]) => {
-        if (!dRes.ok) throw new Error(`상세 요청 실패 (${dRes.status})`);
-        if (!cRes.ok) throw new Error(`크레딧 요청 실패 (${cRes.status})`);
-        const dJson = (await dRes.json()) as MovieDetails;
-        const cJson = (await cRes.json()) as Credits;
-        setDetails(dJson);
-        setCredits(cJson);
-      })
-      .catch((e: unknown) => {
-        setErr(e instanceof Error ? e.message : "알 수 없는 에러");
-      })
-      .finally(() => setLoading(false));
+    const details = (await dRes.json()) as MovieDetails;
+    const credits = (await cRes.json()) as Credits;
+    return { details, credits };
   }, [movieId]);
+
+  const { data, loading, error, refetch } = useCustomFetch<DetailBundle>(fetchDetail, {
+    depsKey,
+    immediate: true,
+  });
+
+  const details = data?.details ?? null;
+  const credits = data?.credits ?? null;
 
   const directors = useMemo(
     () => (credits?.crew || []).filter((p: Crew) => p.job === "Director"),
@@ -84,7 +72,7 @@ export default function MovieDetailPage() {
     );
   }
 
-  if (err) {
+  if (error) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <button
@@ -95,7 +83,13 @@ export default function MovieDetailPage() {
         </button>
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="font-semibold text-red-700">에러</p>
-          <p className="text-red-600 text-sm mt-1">{err}</p>
+          <p className="text-red-600 text-sm mt-1">{error.message}</p>
+          <button
+            onClick={refetch}
+            className="mt-3 rounded-md border px-3 py-1 text-sm hover:bg-red-100"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     );
@@ -146,7 +140,7 @@ export default function MovieDetailPage() {
                 {!!details.genres?.length && (
                   <>
                     <span>·</span>
-                    <span>장르 {details.genres.map(g => g.name).join(", ")}</span>
+                    <span>장르 {details.genres.map((g) => g.name).join(", ")}</span>
                   </>
                 )}
               </div>
@@ -161,7 +155,7 @@ export default function MovieDetailPage() {
               {!!directors.length && (
                 <div className="text-sm">
                   <span className="font-semibold">감독:</span>{" "}
-                  {directors.map(d => d.name).join(", ")}
+                  {directors.map((d) => d.name).join(", ")}
                 </div>
               )}
 

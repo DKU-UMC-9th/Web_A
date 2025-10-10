@@ -22,8 +22,6 @@ export type MovieResponse = {
     total_results: number;
 };
 
-// src/types/movie.ts
-// (네가 이미 갖고 있는 Movie 타입은 그대로 두고, 아래 인터페이스들을 "추가"로 붙여 넣어)
 
 export interface Genre {
   id: number;
