@@ -3,9 +3,25 @@ import { useState } from "react";
 import { type UserSigninInformation, validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { Link, useNavigate } from "react-router-dom";
+import { postSignin } from "../apis/auth";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
 
 const LoginPage = () => {
-  const handleSubmit = () => {};
+  const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+
+
+  const handleSubmit = async () => {
+    console.log(values);
+    try {
+      const response = await postSignin(values);
+      setItem(response.data.accessToken);
+    } catch (error) {
+      alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
+    }
+
+    //console.log(response);
+  };
   const navigate = useNavigate();
   const { values, errors, touched, getInputProps } =
     useForm<UserSigninInformation>({
@@ -143,7 +159,9 @@ const LoginPage = () => {
 
         {/* 회원가입 링크 */}
         <div className="text-center mt-6">
-          <span className="text-sm font-semibold text-gray-600">처음 방문이신가요? </span>
+          <span className="text-sm font-semibold text-gray-600">
+            처음 방문이신가요?{" "}
+          </span>
           <Link
             to="/signup"
             className="text-sm font-bold text-blue-600 "
