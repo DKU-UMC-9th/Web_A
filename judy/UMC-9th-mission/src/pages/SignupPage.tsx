@@ -89,7 +89,7 @@ export default function SignupPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                     >
-                        {showPassword ? <IoEyeOffOutline size={20} /> : <IoEyeOutline size={20} />}
+                        {showPassword ? <IoEyeOutline size={20} /> : <IoEyeOffOutline size={20} />}
                     </button>
                 </div>
                 {errors.password && (
@@ -108,7 +108,7 @@ export default function SignupPage() {
                         onClick={() => setShowPasswordCheck(!showPasswordCheck)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                     >
-                        {showPasswordCheck ? <IoEyeOffOutline size={20} /> : <IoEyeOutline size={20} />}
+                        {showPasswordCheck ? <IoEyeOutline size={20} /> : <IoEyeOffOutline size={20} />}
                     </button>
                 </div>
                 {errors.passwordCheck && (
