@@ -6,8 +6,12 @@ import HomeLayout from './layouts/HomeLayout'
 import SignupPage from './pages/SignupPage'
 import MyPage from './pages/MyPage'
 import './App.css'
+import { AuthProvider } from './context/AuthContext.tsx'
+import { type RouteObject } from 'react-router-dom'
+import ProtectedLayout from './layouts/ProtectedLayout.tsx'
 
-const router = createBrowserRouter([
+
+const publicRoutes: RouteObject[] = [
   {
     path: "/",
     element: <HomeLayout />,
@@ -25,13 +29,26 @@ const router = createBrowserRouter([
         path: "/signup",
         element: <SignupPage />,
       },
+    ]
+  }
+]
+
+const protectedRoutes: RouteObject[] = [
+  {
+    path: "/",
+    element: <ProtectedLayout />,
+    errorElement: <NotFoundPage />,
+    children: [
       {
         path: "/my",
         element: <MyPage />,
       }
     ]
   }
-])
+]
+
+
+const router = createBrowserRouter([...publicRoutes, ...protectedRoutes])
 
 
 
@@ -39,9 +56,9 @@ function App() {
 
 
   return (
-    <>
-      <RouterProvider router={router} />
-    </>
+    <AuthProvider>
+        <RouterProvider router={router} />
+    </AuthProvider>
   )
 }
 
