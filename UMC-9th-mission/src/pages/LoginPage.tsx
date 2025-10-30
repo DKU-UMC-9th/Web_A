@@ -16,17 +16,16 @@ const LoginPage = () => {
   )
 
 
-  const handleSubmit = async() => { 
-    console.log(values); 
-    try{
-    const response = await postSignin(values);
-    setItem(response.data.accessToken);
-    } catch (error) {
-      alert(error?.message)
-    }
-
-    console.log(response);
-  };
+    const handleSubmit = async () => {
+        try {
+            const response = await postSignin(values);
+            console.log(response);
+            setItem(response.data.accessToken);
+        } catch (error) {
+            alert("로그인 실패");
+            console.error("로그인 실패:", error);
+        }
+    };
 //오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
 const isDisabled = Object.values(errors).some((error) => error.length > 0) || Object.values(values).some((value) => value === '');
   return (
