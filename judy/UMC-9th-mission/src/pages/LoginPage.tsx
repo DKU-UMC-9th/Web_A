@@ -3,14 +3,12 @@ import { validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
-import { postSignin } from "../apis/auth";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/key";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
+    const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
-    const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
             email: "",
@@ -20,14 +18,8 @@ export default function LoginPage() {
     })
 
     const handleSubmit = async () => {
-        try {
-            const response = await postSignin(values);
-            console.log(response);
-            setItem(response.data.accessToken);
-        } catch (error) {
-            alert("로그인 실패");
-            console.error("로그인 실패:", error);
-        }
+        await login(values);
+
     };
 
     // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
