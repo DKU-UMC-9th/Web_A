@@ -5,13 +5,13 @@ export const postSignup = async (body: RequestSignupDTO):Promise<ResponseSignupD
     const { data } = await axiosInstance.post("/v1/auth/signup", body);
 
     return data;
-};
+}; 
 
 export const postSignin = async (body: RequestSigninDTO):Promise<ResponseSigninDTO> => {
     const { data } = await axiosInstance.post("/v1/auth/signin",body,);
 
     return data;
-}
+};
 
 export const getMyInfo = async (): Promise<ResponseMyInfoDTO> => {
     const { data } = await axiosInstance.get("/v1/users/me", {
@@ -20,4 +20,10 @@ export const getMyInfo = async (): Promise<ResponseMyInfoDTO> => {
         }
     });
     return data;
-}
+};
+
+export const postLogout = async()=>{
+    const{data}= await axiosInstance.post("/v1/auth/signout");
+
+    return data;
+};
