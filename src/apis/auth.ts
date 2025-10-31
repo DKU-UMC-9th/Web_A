@@ -1,3 +1,4 @@
+import axios from "axios";
 import type { RequestSigninDTO, RequestSignupDTO, ResponseMyInfoDTO, ResponseSigninDTO, ResponseSignupDTO } from "../types/auth";
 import { axiosInstance } from "./axios";
 
@@ -21,3 +22,5 @@ export const getMyInfo = async (): Promise<ResponseMyInfoDTO> => {
     });
     return data;
 }
+
+export 
