@@ -3,16 +3,24 @@ import { validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
-import { postSignin } from "../apis/auth";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/key";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
-    const { login } = useAuth(); 
-    const navigate = useNavigate();   
+    const { login,accessToken } = useAuth(); 
+
+    const navigate = useNavigate(); 
+
+    useEffect(() => {
+        if (accessToken) {
+            navigate("/")
+        }
+    }, [accessToken, navigate]);
+    
+     
+
+
     const [showPassword, setShowPassword] = useState(false);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
@@ -24,6 +32,7 @@ export default function LoginPage() {
 
     const handleSubmit = async () => {
         await login(values);
+        // navigate("/my");
     };
 
     // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
