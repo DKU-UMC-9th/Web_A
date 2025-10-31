@@ -28,6 +28,11 @@ const LoginPage = () => {
     await login(values);
   };
   
+ const handleGoogleLogin = () => {
+  const googleLoginUrl = import.meta.env.VITE_GOOGLE_LOGIN_URL;
+  window.location.href = googleLoginUrl;
+};
+
   const isDisabled =
     Object.values(errors || {}).some((error) => error.length > 0) ||
     Object.values(values).some((value) => value === "");
@@ -120,8 +125,9 @@ const LoginPage = () => {
           >
             로그인
           </button>
+          
         </form>
-
+              
         {/* "또는" 구분선 */}
         <div className="flex items-center my-6">
           <div className="flex-grow border-t border-gray-400"></div>
@@ -132,6 +138,8 @@ const LoginPage = () => {
         {/* 구글 로그인 버튼 */}
         <button
           type="button"
+          onClick={handleGoogleLogin}
+          disabled={isDisabled}
           className="w-full flex items-center justify-center gap-5 py-3 border cursor-pointer border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
         >
           <img
