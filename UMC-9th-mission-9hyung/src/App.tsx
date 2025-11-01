@@ -9,6 +9,7 @@ import './App.css'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { type RouteObject } from 'react-router-dom'
 import ProtectedLayout from './layouts/ProtectedLayout.tsx'
+import GoogleLoginRedirectPage from './pages/GoogleLoginRedirectPage.tsx'
 
 
 const publicRoutes: RouteObject[] = [
@@ -29,6 +30,10 @@ const publicRoutes: RouteObject[] = [
         path: "/signup",
         element: <SignupPage />,
       },
+      {
+        path: "/v1/auth/google/callback",
+        element: <GoogleLoginRedirectPage />,
+      }
     ]
   }
 ]

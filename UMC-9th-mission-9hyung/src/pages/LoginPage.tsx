@@ -24,6 +24,11 @@ const LoginPage = () => {
       alert("로그인 실패");
     }
   };
+
+  const handleGoogleLogin = () => {
+    window.location.href = import.meta.env.VITE_SERVER_API_URL + "/v1/auth/google/login";
+  }
+
   //const navigate = useNavigate();
   const { values, errors, touched, getInputProps } =
     useForm<UserSigninInformation>({
@@ -149,6 +154,8 @@ const LoginPage = () => {
         {/* 구글 로그인 버튼 */}
         <button
           type="button"
+          onClick={handleGoogleLogin}
+          //disabled={isDisabled}
           className="w-full flex items-center justify-center gap-5 py-3 border cursor-pointer border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
         >
           <img
