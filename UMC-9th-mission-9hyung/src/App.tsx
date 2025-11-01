@@ -6,8 +6,13 @@ import HomeLayout from './layouts/HomeLayout'
 import SignupPage from './pages/SignupPage'
 import MyPage from './pages/MyPage'
 import './App.css'
+import { AuthProvider } from './context/AuthContext.tsx'
+import { type RouteObject } from 'react-router-dom'
+import ProtectedLayout from './layouts/ProtectedLayout.tsx'
+import GoogleLoginRedirectPage from './pages/GoogleLoginRedirectPage.tsx'
 
-const router = createBrowserRouter([
+
+const publicRoutes: RouteObject[] = [
   {
     path: "/",
     element: <HomeLayout />,
@@ -26,12 +31,29 @@ const router = createBrowserRouter([
         element: <SignupPage />,
       },
       {
+        path: "/v1/auth/google/callback",
+        element: <GoogleLoginRedirectPage />,
+      }
+    ]
+  }
+]
+
+const protectedRoutes: RouteObject[] = [
+  {
+    path: "/",
+    element: <ProtectedLayout />,
+    errorElement: <NotFoundPage />,
+    children: [
+      {
         path: "/my",
         element: <MyPage />,
       }
     ]
   }
-])
+]
+
+
+const router = createBrowserRouter([...publicRoutes, ...protectedRoutes])
 
 
 
@@ -39,9 +61,9 @@ function App() {
 
 
   return (
-    <>
-      <RouterProvider router={router} />
-    </>
+    <AuthProvider>
+        <RouterProvider router={router} />
+    </AuthProvider>
   )
 }
 
