@@ -3,24 +3,11 @@ import { validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
-    const { login,accessToken } = useAuth(); 
-
-    const navigate = useNavigate(); 
-
-    useEffect(() => {
-        if (accessToken) {
-            navigate("/")
-        }
-    }, [accessToken, navigate]);
-    
-     
-
-
+    const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
@@ -32,7 +19,11 @@ export default function LoginPage() {
 
     const handleSubmit = async () => {
         await login(values);
-        // navigate("/my");
+
+    };
+
+    const handleGoogleLogin = () => {
+        window.location.href = `${import.meta.env.VITE_SERVER_API_URL}/v1/auth/google/login`;
     };
 
     // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화
@@ -48,7 +39,8 @@ export default function LoginPage() {
             </div>
 
             {/* 구글 로그인 버튼 */}
-            <button className="w-[300px] relative flex items-center justify-center bg-black border border-white rounded-lg py-3 hover:bg-gray-800 text-white cursor-pointer">
+            <button className="w-[300px] relative flex items-center justify-center bg-black border border-white rounded-lg py-3 hover:bg-gray-800 text-white cursor-pointer"
+                    onClick={handleGoogleLogin}>
                 <svg className="w-5 h-5 absolute left-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
