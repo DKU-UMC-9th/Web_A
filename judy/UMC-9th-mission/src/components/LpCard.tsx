@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
+import { useState } from "react";
 import type { LpItem } from "../types/lps";
 
 interface LpCardProps {
@@ -8,6 +9,7 @@ interface LpCardProps {
 
 export default function LpCard({ lp }: LpCardProps) {
     const navigate = useNavigate();
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     const handleClick = () => {
         navigate(`/lp/${lp.id}`);
@@ -18,11 +20,21 @@ export default function LpCard({ lp }: LpCardProps) {
             onClick={handleClick}
             className="relative group cursor-pointer overflow-hidden rounded-lg aspect-square"
         >
+            {/* 스켈레톤 로딩 (이미지 로드 전) */}
+            {!imageLoaded && (
+                <div className="absolute inset-0 bg-gray-800 animate-pulse">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800"></div>
+                </div>
+            )}
+
             {/* LP 이미지 */}
             <img
                 src={lp.thumbnail}
                 alt={lp.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                onLoad={() => setImageLoaded(true)}
+                className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
+                    imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
             />
 
             {/* 호버 시 오버레이 배경 */}

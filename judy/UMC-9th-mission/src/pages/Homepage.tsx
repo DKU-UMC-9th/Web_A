@@ -1,39 +1,58 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getLpList, type SortOrder } from "../apis/lps";
 import SortButton from "../components/SortButton";
 import LpCard from "../components/LpCard";
+import LpCardSkeleton from "../components/LpCardSkeleton";
 
 export default function HomePage() {
     const [sort, setSort] = useState<SortOrder>("newest");
+    const observerTarget = useRef<HTMLDivElement>(null);
 
-    const { data, isLoading, isError, error, refetch } = useQuery({
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        refetch
+    } = useInfiniteQuery({
         queryKey: ['lps', sort],
-        queryFn: () => getLpList(sort),
+        queryFn: ({ pageParam }) => getLpList(sort, pageParam),
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => {
+            return lastPage.data.hasNext ? lastPage.data.nextCursor : undefined;
+        },
     });
 
     const handleSortChange = (newSort: SortOrder) => {
         setSort(newSort);
     };
 
-    // 로딩 상태
-    if (isLoading) {
-        return (
-            <div className="p-8 text-white">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">LP 목록</h1>
-                    <SortButton onSortChange={handleSortChange} />
-                </div>
-
-                {/* 스켈레톤 UI */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {[...Array(8)].map((_, index) => (
-                        <div key={index} className="bg-gray-800 rounded-lg animate-pulse aspect-square"></div>
-                    ))}
-                </div>
-            </div>
+    // IntersectionObserver로 무한 스크롤 트리거
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
         );
-    }
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     // 에러 상태
     if (isError) {
@@ -55,21 +74,50 @@ export default function HomePage() {
         );
     }
 
-    // 데이터 표시
-    const lpList = data?.data?.data || [];
+    // 모든 페이지의 데이터를 평탄화
+    const lpList = data?.pages.flatMap((page) => page.data.data) || [];
 
     return (
         <div className="p-16 text-white">
-            {lpList.length === 0 ? (
+            {/* 정렬 버튼 */}
+            <div className="mb-6 flex justify-end">
+                <SortButton onSortChange={handleSortChange} />
+            </div>
+
+            {/* 초기 로딩 상태 - 상단 스켈레톤 */}
+            {isLoading && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[...Array(12)].map((_, index) => (
+                        <LpCardSkeleton key={index} />
+                    ))}
+                </div>
+            )}
+
+            {/* 데이터 표시 */}
+            {!isLoading && lpList.length === 0 ? (
                 <div className="text-center text-gray-400 py-12">
                     등록된 LP가 없습니다.
                 </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {lpList.map((lp) => (
-                        <LpCard key={lp.id} lp={lp} />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {lpList.map((lp) => (
+                            <LpCard key={lp.id} lp={lp} />
+                        ))}
+                    </div>
+
+                    {/* 다음 페이지 로딩 상태 - 하단 스켈레톤 */}
+                    {isFetchingNextPage && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+                            {[...Array(4)].map((_, index) => (
+                                <LpCardSkeleton key={index} />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* IntersectionObserver 타겟 */}
+                    <div ref={observerTarget} className="h-10" />
+                </>
             )}
         </div>
     );

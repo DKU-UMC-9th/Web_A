@@ -4,10 +4,11 @@ import { axiosInstance } from "./axios";
 export type SortOrder = "oldest" | "newest";
 
 // LP 목록 조회
-export const getLpList = async (sort: SortOrder = "newest"): Promise<ResponseLpListDTO> => {
+export const getLpList = async (sort: SortOrder = "newest", cursor?: number): Promise<ResponseLpListDTO> => {
   const { data } = await axiosInstance.get("/v1/lps", {
     params: {
-      sort: sort === "newest" ? "desc" : "asc"
+      sort: sort === "newest" ? "desc" : "asc",
+      ...(cursor && { cursor })
     }
   });
   return data;

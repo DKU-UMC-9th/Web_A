@@ -1,15 +1,21 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { getLpDetail } from "../apis/lps";
+import { getComments } from "../apis/comments";
 import { Heart, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
+import CommentSection from "../components/CommentSection";
+import CommentCard from "../components/CommentCard";
+import CommentSkeleton from "../components/CommentSkeleton";
 
 export default function LpDetailPage() {
     const { lpId } = useParams<{ lpId: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const { accessToken } = useAuth();
+    const [order, setOrder] = useState<"asc" | "desc">("desc");
+    const commentObserverTarget = useRef<HTMLDivElement>(null);
 
     // 비로그인 사용자 체크
     useEffect(() => {
@@ -21,11 +27,58 @@ export default function LpDetailPage() {
         }
     }, [accessToken, location.pathname, navigate]);
 
+    // LP 상세 정보 조회
     const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: ['lp', lpId],
         queryFn: () => getLpDetail(Number(lpId)),
         enabled: !!lpId,
     });
+
+    // 댓글 목록 조회 (useInfiniteQuery)
+    const {
+        data: commentsData,
+        isLoading: isCommentsLoading,
+        isError: isCommentsError,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
+        queryKey: ['lpComments', lpId, order],
+        queryFn: ({ pageParam }) => getComments(Number(lpId), pageParam, undefined, order),
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => {
+            return lastPage.data.hasNext ? lastPage.data.nextCursor : undefined;
+        },
+        enabled: !!lpId,
+    });
+
+    // 댓글 정렬 변경 핸들러
+    const handleOrderChange = (newOrder: "asc" | "desc") => {
+        setOrder(newOrder);
+    };
+
+    // IntersectionObserver로 댓글 무한 스크롤
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = commentObserverTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     // 로딩 상태
     if (isLoading) {
@@ -183,9 +236,62 @@ export default function LpDetailPage() {
                 </div>
 
                 {/* 본문 내용 */}
-                <div className="prose prose-invert max-w-none">
+                <div className="prose prose-invert max-w-none mb-12">
                     <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                         {lp.content}
+                    </div>
+                </div>
+
+                {/* 댓글 섹션 */}
+                <div className="border-t border-gray-800 pt-8">
+                    <CommentSection order={order} onOrderChange={handleOrderChange} />
+
+                    {/* 댓글 목록 */}
+                    <div className="mt-6 space-y-4">
+                        {/* 초기 로딩 상태 - 상단 스켈레톤 */}
+                        {isCommentsLoading && (
+                            <>
+                                {[...Array(5)].map((_, index) => (
+                                    <CommentSkeleton key={index} />
+                                ))}
+                            </>
+                        )}
+
+                        {/* 댓글 에러 상태 */}
+                        {isCommentsError && (
+                            <div className="text-center text-gray-400 py-8">
+                                댓글을 불러오는데 실패했습니다.
+                            </div>
+                        )}
+
+                        {/* 댓글 데이터 표시 */}
+                        {!isCommentsLoading && commentsData && (
+                            <>
+                                {commentsData.pages.flatMap((page) => page.data.data).length === 0 ? (
+                                    <div className="text-center text-gray-400 py-8">
+                                        첫 댓글을 작성해보세요!
+                                    </div>
+                                ) : (
+                                    <>
+                                        {commentsData.pages.flatMap((page) => page.data.data).map((comment) => (
+                                            <CommentCard key={comment.id} comment={comment} />
+                                        ))}
+
+                                        {/* 다음 페이지 로딩 상태 - 하단 스켈레톤 */}
+                                        {isFetchingNextPage && (
+                                            <>
+                                                {[...Array(3)].map((_, index) => (
+                                                    <CommentSkeleton key={index} />
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* IntersectionObserver 타겟 */}
+                                        <div ref={commentObserverTarget} className="h-10" />
+                                    </>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
