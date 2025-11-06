@@ -7,8 +7,10 @@ import HomeLayout from './layouts/HomeLayout';
 import SignupPage from './pages/SignupPage';
 import MyPage from './pages/MyPage';
 import GoogleLoginRedirectPage from './pages/GoogleLoginRedirectPage';
+import LpDetailPage from './pages/LpDetailPage';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedLayout from './layouts/ProtectedLayout';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // 1. 홈페이지
 // 2. 로그인 페이지
@@ -24,6 +26,7 @@ const publicRoutes:RouteObject[] = [
       {index: true, element: <HomePage />},
       {path: 'login', element: <LoginPage />},
       {path: 'signup', element: <SignupPage />},
+      {path: 'lp/:lpId', element: <LpDetailPage />},
       {path: 'v1/auth/google/callback', element: <GoogleLoginRedirectPage />},
     ]
   }
@@ -43,11 +46,25 @@ const protectedRoutes:RouteObject[] = [
 
 const router = createBrowserRouter([...publicRoutes, ...protectedRoutes]);
 
+// React Query Client 설정
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5분
+      gcTime: 10 * 60 * 1000, // 10분
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
