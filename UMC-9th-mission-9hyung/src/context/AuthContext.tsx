@@ -53,13 +53,22 @@ export const AuthProvider = ({children}: PropsWithChildren) => {
                 const newAccessToken = data.accessToken;
                 const newRefreshToken = data.refreshToken;
 
+                // // 👇 [수정] 토큰에 포함된 앞뒤 따옴표(큰따옴표, 둥근따옴표)를 모두 제거합니다.
+                // if (newAccessToken) {
+                //     newAccessToken = newAccessToken.replace(/^["“]|["”]$/g, '');
+                // }
+                // if (newRefreshToken) {
+                //     newRefreshToken = newRefreshToken.replace(/^["“]|["”]$/g, '');
+                // }
+
                 setAccessTokenInStorage(newAccessToken);
                 setRefreshTokenInStorage(newRefreshToken);
 
                 setAccessToken(newAccessToken);
                 setRefreshToken(newRefreshToken);
                 alert("로그인 성공");
-                window.location.href = "/my";
+                console.log("✅ AuthContext login() 실행됨 — redirect 없음");
+                // window.location.href = "/my";
             }
         } catch (error) {
             console.error("로그인 오류", error);
