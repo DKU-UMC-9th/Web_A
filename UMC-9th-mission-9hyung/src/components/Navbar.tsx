@@ -20,7 +20,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      alert("로그아웃 되었습니다.");
+      
       navigate("/");
     } catch (error) {
       console.error("로그아웃 실패:", error);

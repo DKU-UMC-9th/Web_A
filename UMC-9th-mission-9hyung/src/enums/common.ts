@@ -5,5 +5,5 @@ export const PAGINATION_ORDER = {
 } as const;
 
 // 2. TypeScript 타입으로 사용할 String Union Type
-export type PAGINATION_ORDER =
+export type PaginationOrder =
   (typeof PAGINATION_ORDER)[keyof typeof PAGINATION_ORDER];
