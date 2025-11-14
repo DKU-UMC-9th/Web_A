@@ -15,12 +15,18 @@ export default function LoginPage() {
 
     // 이전 페이지 경로를 sessionStorage와 localStorage 둘 다에 저장
     useEffect(() => {
+        // ProtectedLayout에서 전달된 경우: state.location.pathname
+        // LpDetailPage에서 전달된 경우: state.location.pathname
         const from = location.state?.location?.pathname;
+        
+        console.log('LoginPage - location.state:', location.state);
+        console.log('LoginPage - 추출된 경로:', from);
         
         // /my는 기본 경로이므로 저장하지 않음
         if (from && from !== '/login' && from !== '/my') {
             localStorage.setItem('redirectAfterLogin', from);
             sessionStorage.setItem('redirectAfterLogin', from);
+            console.log('로그인 페이지에서 저장된 경로:', from);
         }
     }, [location]);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
@@ -32,17 +38,24 @@ export default function LoginPage() {
     })
 
     const handleSubmit = async () => {
+        console.log('===== handleSubmit 시작 =====');
+        console.log('입력된 값:', values);
+        
         try {
+            console.log('login 함수 호출 시작');
             await login(values);
+            console.log('login 함수 호출 완료');
             
             // 로그인 성공 후 리다이렉트 처리
             const redirectPath = localStorage.getItem('redirectAfterLogin');
+            console.log('로그인 성공 후 확인된 경로:', redirectPath);
             
             if (redirectPath && redirectPath !== 'null' && redirectPath !== 'undefined') {
                 localStorage.removeItem('redirectAfterLogin');
-                sessionStorage.removeItem('redirectAfterLogin');
+                console.log('저장된 경로로 이동:', redirectPath);
                 navigate(redirectPath, { replace: true });
             } else {
+                console.log('기본 경로(/my)로 이동');
                 navigate('/my', { replace: true });
             }
         } catch (error) {
@@ -51,19 +64,28 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = () => {
+        // 구글 로그인 전에 현재 저장된 경로 확인 (이미 state로 전달받아서 저장된 상태)
         let redirectPath = localStorage.getItem('redirectAfterLogin');
+        console.log('구글 로그인 버튼 클릭 - 저장된 경로:', redirectPath);
         
         // state로 전달된 경로가 아직 저장되지 않았다면 저장
         if (!redirectPath || redirectPath === 'null' || redirectPath === 'undefined') {
             const from = location.state?.location?.pathname;
             if (from && from !== '/login' && from !== '/my') {
                 localStorage.setItem('redirectAfterLogin', from);
-                sessionStorage.setItem('redirectAfterLogin', from);
                 redirectPath = from;
+                console.log('구글 로그인 전에 경로 저장:', from);
             }
         }
         
-        window.location.href = `${import.meta.env.VITE_SERVER_API_URL}/v1/auth/google/login`;
+        // 구글 로그인 URL에 redirectPath를 state 파라미터로 전달
+        const googleLoginUrl = `${import.meta.env.VITE_SERVER_API_URL}/v1/auth/google/login`;
+        if (redirectPath && redirectPath !== '/my') {
+            // URL에 state 파라미터로 경로 전달 (백엔드가 이를 다시 콜백 URL에 포함시켜야 함)
+            window.location.href = `${googleLoginUrl}?redirectTo=${encodeURIComponent(redirectPath)}`;
+        } else {
+            window.location.href = googleLoginUrl;
+        }
     };
 
     // 오류가 하나라도 있거나, 입력값이 비어있으면 버튼을 비활성화

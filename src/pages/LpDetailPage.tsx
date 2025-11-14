@@ -88,6 +88,9 @@ const LpDetailPage = () => {
 
     // 로그인 페이지로 이동
     const handleLoginRedirect = () => {
+        // 현재 경로를 state로 전달
+        console.log('LpDetailPage - 현재 location:', location);
+        console.log('LpDetailPage - 전달할 pathname:', location.pathname);
         navigate('/login', { state: { location } });
     };
 

@@ -10,12 +10,16 @@ export default function MyPage() {
     const [data, setData] = useState<ResponseMyInfoDTO | null>(null);
 
    useEffect(() => {
-    // 구글 로그인 후 리다이렉트 처리
+    // 구글 로그인 후 리다이렉트 처리 - sessionStorage 우선 확인
     const redirectPath = sessionStorage.getItem('redirectAfterLogin') || localStorage.getItem('redirectAfterLogin');
+    console.log('MyPage - redirectAfterLogin 확인:', redirectPath);
+    console.log('sessionStorage:', sessionStorage.getItem('redirectAfterLogin'));
+    console.log('localStorage:', localStorage.getItem('redirectAfterLogin'));
     
     if (redirectPath && redirectPath !== 'null' && redirectPath !== 'undefined' && redirectPath !== '/my') {
         sessionStorage.removeItem('redirectAfterLogin');
         localStorage.removeItem('redirectAfterLogin');
+        console.log('저장된 경로로 이동:', redirectPath);
         navigate(redirectPath, { replace: true });
         return;
     }
