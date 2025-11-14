@@ -1,34 +1,75 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import useGetLpList from "../hooks/queries/useGetLpList";
+import useGetLpInfiniteList from "../hooks/queries/useGetLpInfiniteList";
+import type { Lp } from "../types/lp";
 
 
 const HomePage = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState<"asc" | "desc">("desc"); // 기본값: 최신순(desc)
+    const observerTarget = useRef<HTMLDivElement>(null);
     
-    const { data, isPending, isError, refetch } = useGetLpList({ order });
+    const { 
+        data, 
+        isPending, 
+        isError, 
+        refetch,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useGetLpInfiniteList({ order, limit: 20 });
     
-    const lpList = data || [];
+    // 모든 페이지의 데이터를 flat하게 합침
+    const lpList: Lp[] = data?.pages.flat() || [];
 
-    // 로딩 스켈레톤
-    if (isPending) {
-        return (
-            <div className="min-h-screen bg-black text-white p-8">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">LP 목록</h2>
-                    <div className="w-32 h-10 bg-gray-800 rounded-lg animate-pulse"></div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {[...Array(12)].map((_, index) => (
-                        <div key={index} className="animate-pulse">
-                            <div className="aspect-square bg-gray-800 rounded-lg"></div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+    // Intersection Observer로 무한 스크롤 구현
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1 }
         );
-    }
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    // 스켈레톤 카드 컴포넌트
+    const SkeletonCard = () => (
+        <div className="group cursor-pointer transform transition-all duration-300">
+            <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-800 shadow-lg">
+                {/* 펄스 + 쉬머 애니메이션 */}
+                <div 
+                    className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse"
+                    style={{
+                        backgroundSize: '200% 100%',
+                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                    }}
+                ></div>
+            </div>
+            <style>{`
+                @keyframes shimmer {
+                    0% {
+                        background-position: -200% 0;
+                    }
+                    100% {
+                        background-position: 200% 0;
+                    }
+                }
+            `}</style>
+        </div>
+    );
 
     // 에러 상태
     if (isError) {
@@ -56,9 +97,9 @@ const HomePage = () => {
                 <h2 className="text-2xl font-bold">LP 목록 ({lpList.length}개)</h2>
                 <div className="flex gap-2 bg-gray-800 rounded-lg p-1">
                     <button
-                        onClick={() => setOrder("desc")}
+                        onClick={() => setOrder("asc")}
                         className={`px-4 py-2 rounded-md transition-colors ${
-                            order === "desc" 
+                            order === "asc" 
                                 ? "bg-white text-black font-medium" 
                                 : "text-gray-400 hover:text-white"
                         }`}
@@ -66,9 +107,9 @@ const HomePage = () => {
                         오래된순
                     </button>
                     <button
-                        onClick={() => setOrder("asc")}
+                        onClick={() => setOrder("desc")}
                         className={`px-4 py-2 rounded-md transition-colors ${
-                            order === "asc" 
+                            order === "desc" 
                                 ? "bg-white text-black font-medium" 
                                 : "text-gray-400 hover:text-white"
                         }`}
@@ -80,7 +121,17 @@ const HomePage = () => {
 
             {/* LP 그리드 */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {lpList.map((lp: any) => (
+                {/* 초기 로딩 - 상단에 스켈레톤 표시 */}
+                {isPending && (
+                    <>
+                        {[...Array(12)].map((_, index) => (
+                            <SkeletonCard key={`skeleton-initial-${index}`} />
+                        ))}
+                    </>
+                )}
+
+                {/* 실제 LP 데이터 */}
+                {lpList.map((lp: Lp) => (
                     <div
                         key={lp.id}
                         onClick={() => navigate(`/lp/${lp.id}`)}
@@ -123,16 +174,35 @@ const HomePage = () => {
                         </div>
                     </div>
                 ))}
+
+                {/* 다음 페이지 로딩 - 하단에 스켈레톤 표시 */}
+                {isFetchingNextPage && (
+                    <>
+                        {[...Array(6)].map((_, index) => (
+                            <SkeletonCard key={`skeleton-next-${index}`} />
+                        ))}
+                    </>
+                )}
             </div>
 
             {/* 데이터가 없을 때 */}
-            {lpList.length === 0 && (
+            {lpList.length === 0 && !isPending && (
                 <div className="flex justify-center items-center h-96">
                     <div className="text-center">
                         <div className="text-6xl mb-4">🎵</div>
                         <p className="text-gray-500 text-lg">아직 LP가 없습니다.</p>
                         <p className="text-gray-600 text-sm mt-2">첫 번째 LP를 만들어보세요!</p>
                     </div>
+                </div>
+            )}
+
+            {/* 무한 스크롤 트리거 */}
+            <div ref={observerTarget} className="h-10" />
+
+            {/* 더 이상 데이터 없음 */}
+            {!hasNextPage && lpList.length > 0 && (
+                <div className="text-center py-8 text-gray-500">
+                    모든 LP를 불러왔습니다 🎉
                 </div>
             )}
         </div>

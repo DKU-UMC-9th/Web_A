@@ -1,16 +1,40 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import useGetLpDetail from "../hooks/queries/useGetLpDetail";
+import useGetCommentInfiniteList from "../hooks/queries/useGetCommentInfiniteList";
 import { useAuth } from "../context/AuthContext";
 import { FaHeart, FaRegHeart, FaEdit, FaTrash, FaArrowLeft } from "react-icons/fa";
+import type { Comment } from "../types/lp";
+import { createComment } from "../apis/lp";
+import { useQueryClient } from "@tanstack/react-query";
 
 const LpDetailPage = () => {
     const { lpid } = useParams<{ lpid: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const { accessToken } = useAuth();
+    const queryClient = useQueryClient();
     const [showModal, setShowModal] = useState(false);
+    const [commentOrder, setCommentOrder] = useState<"asc" | "desc">("desc");
+    const [commentText, setCommentText] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const commentObserverTarget = useRef<HTMLDivElement>(null);
+    
     const { data: lp, isPending, isError, refetch } = useGetLpDetail(lpid || "");
+    
+    const {
+        data: commentsData,
+        isPending: isCommentsPending,
+        fetchNextPage: fetchNextComments,
+        hasNextPage: hasNextComments,
+        isFetchingNextPage: isFetchingNextComments,
+    } = useGetCommentInfiniteList({
+        lpId: lpid || "",
+        order: commentOrder,
+        limit: 50, // 한 번에 50개씩 로드
+    });
+    
+    const commentList: Comment[] = commentsData?.pages.flatMap(page => page.data.data) || [];
 
     // 비로그인 사용자 체크
     useEffect(() => {
@@ -18,6 +42,35 @@ const LpDetailPage = () => {
             setShowModal(true);
         }
     }, [accessToken]);
+
+    // 댓글 무한 스크롤
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                console.log('댓글 Observer 트리거:', {
+                    isIntersecting: entries[0].isIntersecting,
+                    hasNextComments,
+                    isFetchingNextComments
+                });
+                if (entries[0].isIntersecting && hasNextComments && !isFetchingNextComments) {
+                    console.log('다음 댓글 페이지 로드 시작');
+                    fetchNextComments();
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' } // 100px 전에 미리 로드
+        );
+
+        const currentTarget = commentObserverTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasNextComments, isFetchingNextComments, fetchNextComments]);
 
     // 로딩 스켈레톤
     if (isPending) {
@@ -88,10 +141,29 @@ const LpDetailPage = () => {
 
     // 로그인 페이지로 이동
     const handleLoginRedirect = () => {
-        // 현재 경로를 state로 전달
-        console.log('LpDetailPage - 현재 location:', location);
-        console.log('LpDetailPage - 전달할 pathname:', location.pathname);
+        // 현재 경로를 저장
+        const currentPath = location.pathname;
+        localStorage.setItem('redirectAfterLogin', currentPath);
+        sessionStorage.setItem('redirectAfterLogin', currentPath);
         navigate('/login', { state: { location } });
+    };
+
+    // 댓글 작성
+    const handleCommentSubmit = async () => {
+        if (!commentText.trim() || commentText.length > 200 || !lpid) return;
+        
+        setIsSubmitting(true);
+        try {
+            await createComment(lpid, commentText.trim());
+            setCommentText("");
+            // 댓글 목록 새로고침
+            queryClient.invalidateQueries({ queryKey: ["lpComments", lpid] });
+        } catch (error) {
+            console.error("댓글 작성 실패:", error);
+            alert("댓글 작성에 실패했습니다. 다시 시도해주세요.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // 비로그인 경고 모달
@@ -219,6 +291,220 @@ const LpDetailPage = () => {
                                 <FaTrash />
                                 <span>삭제</span>
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 댓글 섹션 */}
+                <div className="mt-12 max-w-4xl mx-auto">
+                    <div className="bg-gray-900 rounded-lg p-6">
+                        {/* 댓글 헤더 */}
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold">
+                                댓글 {!isCommentsPending && `(${commentList.length}개)`}
+                            </h2>
+                            <div className="flex gap-2 bg-gray-800 rounded-lg p-1">
+                                <button
+                                    onClick={() => setCommentOrder("asc")}
+                                    className={`px-3 py-1 rounded-md transition-colors text-sm ${
+                                        commentOrder === "asc"
+                                            ? "bg-white text-black font-medium"
+                                            : "text-gray-400 hover:text-white"
+                                    }`}
+                                >
+                                    오래된순
+                                </button>
+                                <button
+                                    onClick={() => setCommentOrder("desc")}
+                                    className={`px-3 py-1 rounded-md transition-colors text-sm ${
+                                        commentOrder === "desc"
+                                            ? "bg-white text-black font-medium"
+                                            : "text-gray-400 hover:text-white"
+                                    }`}
+                                >
+                                    최신순
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 댓글 작성란 */}
+                        <div className="mb-6">
+                            <textarea
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                placeholder="댓글을 입력해주세요..."
+                                className="w-full bg-gray-800 text-white rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
+                                rows={3}
+                            />
+                            {commentText.length > 0 && (
+                                <div className="mt-2 flex justify-between items-center">
+                                    <span className="text-sm text-gray-400">
+                                        {commentText.length > 200 ? (
+                                            <span className="text-red-500">200자를 초과했습니다</span>
+                                        ) : (
+                                            <span>{commentText.length} / 200</span>
+                                        )}
+                                    </span>
+                                    <button
+                                        onClick={handleCommentSubmit}
+                                        disabled={commentText.length === 0 || commentText.length > 200 || isSubmitting}
+                                        className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed"
+                                    >
+                                        {isSubmitting ? "작성 중..." : "작성"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 댓글 목록 */}
+                        <div className="space-y-4">
+                            {/* 초기 로딩 스켈레톤 - 상단 */}
+                            {isCommentsPending && (
+                                <>
+                                    {[...Array(3)].map((_, index) => (
+                                        <div key={`comment-skeleton-${index}`} className="p-4 bg-gray-800 rounded-lg">
+                                            <div className="flex gap-3">
+                                                {/* 아바tar 스켈레톤 */}
+                                                <div className="relative w-10 h-10 rounded-full bg-gray-700 overflow-hidden">
+                                                    <div 
+                                                        className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                        style={{
+                                                            backgroundSize: '200% 100%',
+                                                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                {/* 댓글 내용 스켈레톤 */}
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="relative h-4 bg-gray-700 rounded w-24 overflow-hidden">
+                                                        <div 
+                                                            className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                            style={{
+                                                                backgroundSize: '200% 100%',
+                                                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="relative h-4 bg-gray-700 rounded w-full overflow-hidden">
+                                                        <div 
+                                                            className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                            style={{
+                                                                backgroundSize: '200% 100%',
+                                                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="relative h-3 bg-gray-700 rounded w-32 overflow-hidden">
+                                                        <div 
+                                                            className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                            style={{
+                                                                backgroundSize: '200% 100%',
+                                                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* 실제 댓글 */}
+                            {commentList.map((comment) => (
+                                <div key={comment.id} className="flex gap-3 p-4 bg-gray-800 rounded-lg hover:bg-gray-750 transition-colors">
+                                    <div className="flex-shrink-0">
+                                        {comment.author.avatar ? (
+                                            <img
+                                                src={comment.author.avatar}
+                                                alt={comment.author.name}
+                                                className="w-10 h-10 rounded-full"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold">
+                                                {comment.author.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-semibold text-white">{comment.author.name}</span>
+                                            <span className="text-xs text-gray-400">
+                                                {new Date(comment.createdAt).toLocaleDateString('ko-KR', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>
+                                    </div>
+                                    <button className="text-gray-500 hover:text-gray-300">⋮</button>
+                                </div>
+                            ))}
+
+                            {/* 다음 페이지 로딩 스켈레톤 - 하단 */}
+                            {isFetchingNextComments && (
+                                <>
+                                    {[...Array(2)].map((_, index) => (
+                                        <div key={`comment-next-skeleton-${index}`} className="p-4 bg-gray-800 rounded-lg">
+                                            <div className="flex gap-3">
+                                                {/* 아바타 스켈레톤 */}
+                                                <div className="relative w-10 h-10 rounded-full bg-gray-700 overflow-hidden">
+                                                    <div 
+                                                        className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                        style={{
+                                                            backgroundSize: '200% 100%',
+                                                            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                {/* 댓글 내용 스켈레톤 */}
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="relative h-4 bg-gray-700 rounded w-24 overflow-hidden">
+                                                        <div 
+                                                            className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                            style={{
+                                                                backgroundSize: '200% 100%',
+                                                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="relative h-4 bg-gray-700 rounded w-full overflow-hidden">
+                                                        <div 
+                                                            className="absolute inset-0 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
+                                                            style={{
+                                                                backgroundSize: '200% 100%',
+                                                                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite, shimmer 2s linear infinite'
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* 무한 스크롤 트리거 */}
+                            <div ref={commentObserverTarget} className="h-20" />
+
+                            {/* 댓글 없음 */}
+                            {!isCommentsPending && commentList.length === 0 && (
+                                <div className="text-center py-12 text-gray-500">
+                                    <div className="text-4xl mb-2">💬</div>
+                                    <p>첫 번째 댓글을 작성해보세요!</p>
+                                </div>
+                            )}
+
+                            {/* 더 이상 댓글 없음 */}
+                            {!hasNextComments && commentList.length > 0 && (
+                                <div className="text-center py-4 text-gray-500 text-sm">
+                                    모든 댓글을 불러왔습니다
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
