@@ -17,7 +17,15 @@ export default function GoogleLoginRedirectPage() {
 
         if (refreshToken) {
             setRefreshToken(refreshToken);
-            window.location.href="/my";
+
+            // 로그인 성공 후 원래 페이지로 리다이렉트
+            const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+            if (redirectPath) {
+                sessionStorage.removeItem('redirectAfterLogin');
+                window.location.href = redirectPath;
+            } else {
+                window.location.href = "/";
+            }
         }
     }, [setAccessToken, setRefreshToken]);
 
