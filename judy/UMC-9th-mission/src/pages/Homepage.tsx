@@ -81,7 +81,7 @@ export default function HomePage() {
         <div className="p-16 text-white">
             {/* 정렬 버튼 */}
             <div className="mb-6 flex justify-end">
-                <SortButton onSortChange={handleSortChange} />
+                <SortButton currentSort={sort} onSortChange={handleSortChange} />
             </div>
 
             {/* 초기 로딩 상태 - 상단 스켈레톤 */}
@@ -94,11 +94,13 @@ export default function HomePage() {
             )}
 
             {/* 데이터 표시 */}
-            {!isLoading && lpList.length === 0 ? (
+            {!isLoading && lpList.length === 0 && (
                 <div className="text-center text-gray-400 py-12">
                     등록된 LP가 없습니다.
                 </div>
-            ) : (
+            )}
+
+            {!isLoading && lpList.length > 0 && (
                 <>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {lpList.map((lp) => (

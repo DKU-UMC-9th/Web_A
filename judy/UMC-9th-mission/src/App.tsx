@@ -40,6 +40,7 @@ const protectedRoutes:RouteObject[] = [
     errorElement: <NotFoundPage />,
     children: [
       {path: 'my', element: <MyPage />},
+      {path: 'mypage', element: <MyPage />},
     ]
   }
 ];

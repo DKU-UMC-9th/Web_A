@@ -42,3 +42,23 @@ export type ResponseMyInfoDTO = CommonResponse<{
     createdAt: Date;
     updatedAt: Date;
 }>;
+
+// 내 정보 수정
+export type RequestUpdateMyInfoDTO = {
+    name: string;
+    bio?: string;
+    avatar?: string;
+};
+
+export type ResponseUpdateMyInfoDTO = CommonResponse<{
+    id: number;
+    name: string;
+    email: string;
+    bio: string | null;
+    avatar: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+}>;
+
+// 회원 탈퇴
+export type ResponseDeleteUserDTO = CommonResponse<null>;

@@ -2,6 +2,10 @@ import { Search, User } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { deleteUser } from '../apis/auth';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { LOCAL_STORAGE_KEY } from '../constants/key';
 
 interface SideBarProps {
     className?: string;
@@ -10,9 +14,41 @@ interface SideBarProps {
 export default function SideBar({ className }: SideBarProps) {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    const { removeItem: removeAccessToken } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+    const { removeItem: removeRefreshToken } = useLocalStorage(LOCAL_STORAGE_KEY.refreshToken);
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
+    };
+
+    // 회원 탈퇴 mutation
+    const deleteUserMutation = useMutation({
+        mutationFn: deleteUser,
+        onSuccess: () => {
+            alert('회원 탈퇴가 완료되었습니다.');
+            removeAccessToken();
+            removeRefreshToken();
+            window.location.href = '/login';
+        },
+        onError: (error) => {
+            console.error('회원 탈퇴 실패:', error);
+            alert('회원 탈퇴에 실패했습니다. 다시 시도해주세요.');
+        }
+    });
+
+    const handleDeleteUser = () => {
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        deleteUserMutation.mutate();
+        setShowDeleteModal(false);
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
     };
 
     return (
@@ -76,11 +112,41 @@ export default function SideBar({ className }: SideBarProps) {
 
                 {/* 하단 탈퇴하기 */}
                 <div className="mt-auto px-4 pb-12">
-                    <button className="text-xs text-gray-400 hover:text-red-400 transition-colors absolute ml-10">
+                    <button
+                        onClick={handleDeleteUser}
+                        className="text-xs text-gray-400 hover:text-red-400 transition-colors absolute ml-10"
+                    >
                         탈퇴하기
                     </button>
                 </div>
             </aside>
+
+            {/* 회원 탈퇴 확인 모달 */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-gray-800 rounded-lg p-6 max-w-sm mx-4">
+                        <h3 className="text-lg font-bold text-white mb-4">회원 탈퇴</h3>
+                        <p className="text-gray-300 mb-6">
+                            정말로 탈퇴하시겠습니까?<br />
+                            탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={cancelDelete}
+                                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                            >
+                                아니오
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                            >
+                                예
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
