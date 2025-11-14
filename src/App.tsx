@@ -13,6 +13,8 @@ import HomeLayout from './layouts/HomeLayout';
 import SignupPage from './pages/SignupPage';
 import MyPage from './pages/MyPage';
 import GoogleLoginRedirectPage from './pages/GoogleLoginRedirectPage';
+import CreateLpPage from './pages/CreateLpPage';
+import LpDetailPage from './pages/LpDetailPage';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedLayout from './layouts/ProtectedLayout';
 
@@ -32,6 +34,7 @@ const publicRoutes:RouteObject[] = [
       {index: true, element: <HomePage />},
       {path: 'login', element: <LoginPage />},
       {path: 'signup', element: <SignupPage />},
+      {path: 'lp/:lpid', element: <LpDetailPage />},
       {path: 'v1/auth/google/callback', element: <GoogleLoginRedirectPage />},
     ]
   }
@@ -45,13 +48,20 @@ const protectedRoutes:RouteObject[] = [
     errorElement: <NotFoundPage />,
     children: [
       {path: 'my', element: <MyPage />},
+      {path: 'create', element: <CreateLpPage />},
     ]
   }
 ];
 
 const router = createBrowserRouter([...publicRoutes, ...protectedRoutes]);
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+    },
+  },
+});
 
 function App() {
   return (

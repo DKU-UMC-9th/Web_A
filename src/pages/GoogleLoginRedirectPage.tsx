@@ -17,7 +17,17 @@ export default function GoogleLoginRedirectPage() {
 
         if (refreshToken) {
             setRefreshToken(refreshToken);
-            window.location.href="/my";
+            
+            // 저장된 리다이렉트 경로 확인
+            const redirectPath = sessionStorage.getItem('redirectAfterLogin') || localStorage.getItem('redirectAfterLogin');
+            
+            if (redirectPath && redirectPath !== 'null' && redirectPath !== 'undefined') {
+                sessionStorage.removeItem('redirectAfterLogin');
+                localStorage.removeItem('redirectAfterLogin');
+                window.location.href = redirectPath;
+            } else {
+                window.location.href = "/my";
+            }
         }
     }, [setAccessToken, setRefreshToken]);
 

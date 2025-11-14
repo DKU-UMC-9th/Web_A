@@ -30,7 +30,7 @@ export const AuthProvider = ({children}:PropsWithChildren) => {
 
     const [accessToken, setAccessToken] = useState<string | null>(getAccessTokenFromStorage());
     const [refreshToken, setRefreshToken] = useState<string | null>(getRefreshTokenFromStorage());
-
+    
     const login = async (signInData: RequestSigninDTO) => {
         try {
             const response = await postSignin(signInData);
@@ -44,21 +44,26 @@ export const AuthProvider = ({children}:PropsWithChildren) => {
 
                 setAccessTokenInStorage(newAccessToken);
                 setRefreshTokenInStorage(newRefreshToken);
-                alert("로그인 성공");
-                window.location.replace("/my");
+                
+                console.log('AuthContext - 로그인 성공, 토큰 저장 완료');
             } else {
                 throw new Error("로그인 응답 데이터가 없습니다.");
             }
         } catch (error) {
             console.error("로그인 실패:", error);
-            alert("로그인 실패");    
+            alert("로그인 실패");
+            throw error; // 에러를 다시 throw하여 LoginPage에서 catch할 수 있도록 함
         }
     };
+    
     const logout = async() => {
         try {
             await postLogout();
             removeAccessTokenFromStorage();
             removeRefreshTokenFromStorage();
+            
+            // 로그아웃 시 저장된 리다이렉트 경로 삭제
+            localStorage.removeItem('redirectAfterLogin');
 
             setAccessToken(null);
             setRefreshToken(null);
@@ -82,4 +87,4 @@ export const useAuth = () => {
     }
 
     return context;
-}
+};

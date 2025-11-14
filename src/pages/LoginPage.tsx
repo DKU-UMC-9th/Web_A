@@ -3,12 +3,26 @@ import { validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
     const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // 이전 페이지 경로를 sessionStorage와 localStorage 둘 다에 저장
+    useEffect(() => {
+        const from = location.state?.location?.pathname;
+        
+        // /my는 기본 경로이므로 저장하지 않음
+        if (from && from !== '/login' && from !== '/my') {
+            localStorage.setItem('redirectAfterLogin', from);
+            sessionStorage.setItem('redirectAfterLogin', from);
+        }
+    }, [location]);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
             email: "",
@@ -18,11 +32,37 @@ export default function LoginPage() {
     })
 
     const handleSubmit = async () => {
-        await login(values);
-
+        try {
+            await login(values);
+            
+            // 로그인 성공 후 리다이렉트 처리
+            const redirectPath = localStorage.getItem('redirectAfterLogin');
+            
+            if (redirectPath && redirectPath !== 'null' && redirectPath !== 'undefined') {
+                localStorage.removeItem('redirectAfterLogin');
+                sessionStorage.removeItem('redirectAfterLogin');
+                navigate(redirectPath, { replace: true });
+            } else {
+                navigate('/my', { replace: true });
+            }
+        } catch (error) {
+            console.error('로그인 실패:', error);
+        }
     };
 
     const handleGoogleLogin = () => {
+        let redirectPath = localStorage.getItem('redirectAfterLogin');
+        
+        // state로 전달된 경로가 아직 저장되지 않았다면 저장
+        if (!redirectPath || redirectPath === 'null' || redirectPath === 'undefined') {
+            const from = location.state?.location?.pathname;
+            if (from && from !== '/login' && from !== '/my') {
+                localStorage.setItem('redirectAfterLogin', from);
+                sessionStorage.setItem('redirectAfterLogin', from);
+                redirectPath = from;
+            }
+        }
+        
         window.location.href = `${import.meta.env.VITE_SERVER_API_URL}/v1/auth/google/login`;
     };
 
@@ -92,7 +132,11 @@ export default function LoginPage() {
                 )}
                 <button
                     type="button"
-                    onClick={handleSubmit}
+                    onClick={() => {
+                        console.log('로그인 버튼 클릭됨!');
+                        console.log('isDisabled:', isDisabled);
+                        handleSubmit();
+                    }}
                     disabled={isDisabled}
                     className="w-full bg-[#807bff] text-white py-3 rounded-lg text-lg font-medium hover:bg-[#605bff] transition-colors cursor-pointer disabled:bg-gray-600 disabled:cursor-not-allowed"
                 >

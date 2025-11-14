@@ -9,14 +9,24 @@ export default function MyPage() {
     const {logout} = useAuth();
     const [data, setData] = useState<ResponseMyInfoDTO | null>(null);
 
-    useEffect(() => {
-        const getData = async () => {
-            const response = await getMyInfo();
-            setData(response);
-        };
+   useEffect(() => {
+    // 구글 로그인 후 리다이렉트 처리
+    const redirectPath = sessionStorage.getItem('redirectAfterLogin') || localStorage.getItem('redirectAfterLogin');
+    
+    if (redirectPath && redirectPath !== 'null' && redirectPath !== 'undefined' && redirectPath !== '/my') {
+        sessionStorage.removeItem('redirectAfterLogin');
+        localStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath, { replace: true });
+        return;
+    }
 
-        getData();
-    },[]);
+    const getData = async () => {
+        const response = await getMyInfo();
+        setData(response);
+    };
+
+    getData();
+}, [navigate]);
 
     const handleLogout = async () => {
         await logout();
