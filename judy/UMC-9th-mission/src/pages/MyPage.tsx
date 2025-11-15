@@ -1,17 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { User } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { getMyInfo, patchMyInfo } from "../apis/auth";
+import { useMyInfo, useUpdateMyInfo } from "../hooks/useMyInfo";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import Header from "../components/Header";
 
 export default function MyPage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
+  const { data: userInfo, isLoading } = useMyInfo();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 사용자 정보 불러오기
@@ -22,23 +22,12 @@ export default function MyPage() {
       return;
     }
 
-    const fetchUserInfo = async () => {
-      try {
-        const response = await getMyInfo();
-        if (response.data) {
-          setName(response.data.name);
-          setBio(response.data.bio || "");
-          setSelectedImage(response.data.avatar);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user info:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserInfo();
-  }, [accessToken, navigate]);
+    if (userInfo?.data) {
+      setName(userInfo.data.name);
+      setBio(userInfo.data.bio || "");
+      setSelectedImage(userInfo.data.avatar || null);
+    }
+  }, [accessToken, navigate, userInfo]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -55,40 +44,43 @@ export default function MyPage() {
     }
   };
 
-  // 프로필 수정 mutation
-  const updateMyInfoMutation = useMutation({
-    mutationFn: patchMyInfo,
-    onSuccess: () => {
-      alert('프로필이 수정되었습니다.');
-      navigate('/');
-    },
-    onError: (error) => {
-      console.error('Failed to update profile:', error);
-      alert('프로필 수정에 실패했습니다. 다시 시도해주세요.');
-    }
-  });
+  // 프로필 수정 mutation (낙관적 업데이트 포함)
+  const updateMyInfoMutation = useUpdateMyInfo();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      updateMyInfoMutation.mutate({
-        name: name.trim(),
-        bio: bio.trim() || undefined,
-        avatar: selectedImage || undefined
-      });
+      updateMyInfoMutation.mutate(
+        {
+          name: name.trim(),
+          bio: bio.trim() || undefined,
+          avatar: selectedImage || undefined
+        },
+        {
+          onSuccess: () => {
+            alert('프로필이 수정되었습니다.');
+            navigate('/');
+          }
+        }
+      );
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="text-white text-lg">로딩 중...</div>
-      </div>
+      <>
+        <Header />
+        <div className="flex items-center justify-center min-h-screen bg-black">
+          <div className="text-white text-lg">로딩 중...</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+    <>
+      <Header />
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         {/* 제목 */}
         <h1 className="text-3xl font-bold mb-8 text-center">마이페이지</h1>
@@ -169,5 +161,6 @@ export default function MyPage() {
         </form>
       </div>
     </div>
+    </>
   );
 }

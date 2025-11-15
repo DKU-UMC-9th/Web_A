@@ -65,7 +65,7 @@ export default function LoginPage() {
         Object.values(values).some((value : string) => value === "");
 
     return(
-        <div className="flex flex-col ml-160 justify-center h-full gap-4 bg-[#000000]">
+        <div className="flex flex-col ml-130 justify-center h-full gap-4 bg-[#000000]">
             <div className="w-[300px] relative flex items-center justify-center mb-8">
                 <IoChevronBack className="absolute left-0 text-2xl cursor-pointer text-white" />
                 <h1 className="text-2xl text-white font-semibold">로그인</h1>

@@ -1,40 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useState } from "react";
-import { getMyInfo, postLogout } from "../apis/auth";
+import { useState } from "react";
+import { postLogout } from "../apis/auth";
 import { Search, Plus } from 'lucide-react';
-import type { ResponseMyInfoDTO } from "../types/auth";
 import CreateLpModal from "./CreateLpModal";
 import { createLp } from "../apis/lps";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useMyInfo } from "../hooks/useMyInfo";
 
 export default function Header() {
     const navigate = useNavigate();
     const { accessToken } = useAuth();
-    const [userInfo, setUserInfo] = useState<ResponseMyInfoDTO | null>(null);
+    const { data: userInfo } = useMyInfo();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const queryClient = useQueryClient();
 
     const { removeItem: removeAccessToken } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
     const { removeItem: removeRefreshToken } = useLocalStorage(LOCAL_STORAGE_KEY.refreshToken);
-
-    useEffect(() => {
-        if (accessToken) {
-            const fetchUserInfo = async () => {
-                try {
-                    const response = await getMyInfo();
-                    setUserInfo(response);
-                } catch (error) {
-                    console.error("사용자 정보 가져오기 실패:", error);
-                }
-            };
-            fetchUserInfo();
-        } else {
-            setUserInfo(null);
-        }
-    }, [accessToken]);
 
     // LP 생성 mutation
     const createLpMutation = useMutation({
@@ -59,7 +43,7 @@ export default function Header() {
         onSuccess: () => {
             removeAccessToken();
             removeRefreshToken();
-            setUserInfo(null);
+            queryClient.clear(); // 모든 쿼리 캐시 제거
             alert("로그아웃 성공");
             navigate("/");
         },

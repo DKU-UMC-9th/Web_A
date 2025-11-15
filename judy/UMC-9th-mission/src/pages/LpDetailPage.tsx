@@ -5,11 +5,12 @@ import { getComments, postComment, patchComment, deleteComment } from "../apis/c
 import { getMyInfo } from "../apis/auth";
 import { Heart, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import CommentSection from "../components/CommentSection";
 import CommentCard from "../components/CommentCard";
 import CommentSkeleton from "../components/CommentSkeleton";
 import EditLpModal from "../components/EditLpModal";
+import { useLikeLp } from "../hooks/useLikeLp";
 
 export default function LpDetailPage() {
     const { lpId } = useParams<{ lpId: string }>();
@@ -165,6 +166,26 @@ export default function LpDetailPage() {
 
     const handleUpdateLp = (data: { title: string; content: string; tags: string[]; thumbnail?: string }) => {
         updateLpMutation.mutate(data);
+    };
+
+    // 좋아요 mutation
+    const likeLpMutation = useLikeLp({
+        lpId: Number(lpId),
+        userId: userInfo?.data?.id,
+    });
+
+    // 현재 사용자가 좋아요를 눌렀는지 확인
+    const isLiked = useMemo(() => {
+        if (!userInfo?.data?.id || !data?.data?.likes) return false;
+        return data.data.likes.some((like) => like.userId === userInfo.data.id);
+    }, [userInfo?.data?.id, data?.data?.likes]);
+
+    const handleLikeToggle = () => {
+        if (!accessToken) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        likeLpMutation.mutate({ isLiked });
     };
 
     // IntersectionObserver로 댓글 무한 스크롤
@@ -326,10 +347,16 @@ export default function LpDetailPage() {
                 {/* 액션 버튼 */}
                 <div className="flex gap-3 mb-8 pb-8 border-b border-gray-800">
                     <button
-                        className="flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg transition-colors"
+                        onClick={handleLikeToggle}
+                        disabled={likeLpMutation.isPending}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                            isLiked
+                                ? 'bg-pink-500 hover:bg-pink-600'
+                                : 'bg-gray-700 hover:bg-gray-600'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                        <Heart className="w-5 h-5" />
-                        <span>좋아요</span>
+                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span>{isLiked ? '좋아요 취소' : '좋아요'}</span>
                     </button>
                     {/* 본인 LP일 때만 수정/삭제 버튼 표시 */}
                     {userInfo?.data?.id === lp.authorId && (
