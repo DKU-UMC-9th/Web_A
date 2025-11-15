@@ -1,18 +1,13 @@
-import { useState } from "react";
 import type { SortOrder } from "../apis/lps";
 
 interface SortButtonProps {
-    onSortChange?: (order: SortOrder) => void;
+    currentSort: SortOrder;
+    onSortChange: (order: SortOrder) => void;
 }
 
-export default function SortButton({ onSortChange }: SortButtonProps) {
-    const [selectedSort, setSelectedSort] = useState<SortOrder>("newest");
-
+export default function SortButton({ currentSort, onSortChange }: SortButtonProps) {
     const handleSortClick = (order: SortOrder) => {
-        setSelectedSort(order);
-        if (onSortChange) {
-            onSortChange(order);
-        }
+        onSortChange(order);
     };
 
     return (
@@ -20,7 +15,7 @@ export default function SortButton({ onSortChange }: SortButtonProps) {
             <button
                 onClick={() => handleSortClick("oldest")}
                 className={`px-4 py-2 text-sm rounded-md cursor-pointer transition-colors ${
-                    selectedSort === "oldest"
+                    currentSort === "oldest"
                         ? "bg-white text-black"
                         : "bg-black text-white"
                 }`}
@@ -30,7 +25,7 @@ export default function SortButton({ onSortChange }: SortButtonProps) {
             <button
                 onClick={() => handleSortClick("newest")}
                 className={`px-4 py-2 text-sm rounded-md cursor-pointer transition-colors ${
-                    selectedSort === "newest"
+                    currentSort === "newest"
                         ? "bg-white text-black"
                         : "bg-black text-white"
                 }`}

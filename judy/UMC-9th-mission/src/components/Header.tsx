@@ -1,30 +1,61 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useState } from "react";
-import { getMyInfo } from "../apis/auth";
+import { useState } from "react";
+import { postLogout } from "../apis/auth";
 import { Search, Plus } from 'lucide-react';
-import type { ResponseMyInfoDTO } from "../types/auth";
+import CreateLpModal from "./CreateLpModal";
+import { createLp } from "../apis/lps";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useMyInfo } from "../hooks/useMyInfo";
 
 export default function Header() {
     const navigate = useNavigate();
-    const { accessToken, logout } = useAuth();
-    const [userInfo, setUserInfo] = useState<ResponseMyInfoDTO | null>(null);
+    const { accessToken } = useAuth();
+    const { data: userInfo } = useMyInfo();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        if (accessToken) {
-            const fetchUserInfo = async () => {
-                try {
-                    const response = await getMyInfo();
-                    setUserInfo(response);
-                } catch (error) {
-                    console.error("사용자 정보 가져오기 실패:", error);
-                }
-            };
-            fetchUserInfo();
-        } else {
-            setUserInfo(null);
+    const { removeItem: removeAccessToken } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+    const { removeItem: removeRefreshToken } = useLocalStorage(LOCAL_STORAGE_KEY.refreshToken);
+
+    // LP 생성 mutation
+    const createLpMutation = useMutation({
+        mutationFn: createLp,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lps'] });
+            setIsModalOpen(false);
+        },
+        onError: (error) => {
+            console.error('Failed to create LP:', error);
+            alert('LP 생성에 실패했습니다. 다시 시도해주세요.');
         }
-    }, [accessToken]);
+    });
+
+    const handleCreateLp = (data: { title: string; content: string; tags: string[]; thumbnail?: string }) => {
+        createLpMutation.mutate(data);
+    };
+
+    // 로그아웃 mutation
+    const logoutMutation = useMutation({
+        mutationFn: postLogout,
+        onSuccess: () => {
+            removeAccessToken();
+            removeRefreshToken();
+            queryClient.clear(); // 모든 쿼리 캐시 제거
+            alert("로그아웃 성공");
+            navigate("/");
+        },
+        onError: (error) => {
+            console.error('로그아웃 실패:', error);
+            alert('로그아웃에 실패했습니다.');
+        }
+    });
+
+    const handleLogout = () => {
+        logoutMutation.mutate();
+    };
 
     return (
         <>
@@ -42,10 +73,7 @@ export default function Header() {
                             </div>
                             <button
                                 className="px-4 py-2 text-sm text-white rounded-md bg-[#1f1f1f] cursor-pointer"
-                                onClick={async () => {
-                                    await logout();
-                                    navigate("/");
-                                }}
+                                onClick={handleLogout}
                             >
                                 로그아웃
                             </button>
@@ -71,14 +99,19 @@ export default function Header() {
 
             {/* 플로팅 버튼 */}
             <button
-                className="fixed bottom-20 right-30 w-14 h-14 bg-pink-500 hover:bg-pink-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer z-50 transition-colors"
-                onClick={() => {
-                    // 원하는 동작을 여기에 추가하세요
-                    console.log('플로팅 버튼 클릭');
-                }}
+                className="fixed bottom-8 right-8 w-14 h-14 bg-pink-500 hover:bg-pink-600 rounded-full flex items-center justify-center shadow-lg cursor-pointer z-50 transition-all hover:scale-110"
+                onClick={() => setIsModalOpen(true)}
+                aria-label="Create new LP"
             >
                 <Plus className="w-6 h-6 text-white" />
             </button>
+
+            {/* Create LP Modal */}
+            <CreateLpModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleCreateLp}
+            />
         </>
     );
 }

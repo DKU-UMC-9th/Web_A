@@ -4,12 +4,12 @@ import useForm from "../hooks/useForm";
 import { IoChevronBack } from "react-icons/io5";
 import { IoEyeOutline, IoEyeOffOutline } from "react-icons/io5";
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { postSignin } from "../apis/auth";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { LOCAL_STORAGE_KEY } from "../constants/key";
 
 export default function LoginPage() {
-    const { login } = useAuth();
-    const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const { values, errors, touched, getInputProps } = useForm<UserSigninInformation>({
         initialValue: {
@@ -19,17 +19,40 @@ export default function LoginPage() {
         validate: validateSignin,
     })
 
-    const handleSubmit = async () => {
-        await login(values);
+    const { setItem: setAccessTokenInStorage } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+    const { setItem: setRefreshTokenInStorage } = useLocalStorage(LOCAL_STORAGE_KEY.refreshToken);
 
-        // 로그인 성공 후 리다이렉트
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-        if (redirectPath) {
-            sessionStorage.removeItem('redirectAfterLogin');
-            navigate(redirectPath);
-        } else {
-            navigate('/');
+    // 로그인 mutation
+    const loginMutation = useMutation({
+        mutationFn: postSignin,
+        onSuccess: (response) => {
+            if (response && response.data) {
+                const newAccessToken = response.data.accessToken;
+                const newRefreshToken = response.data.refreshToken;
+
+                setAccessTokenInStorage(newAccessToken);
+                setRefreshTokenInStorage(newRefreshToken);
+
+                alert("로그인 성공");
+
+                // 로그인 성공 후 리다이렉트 (페이지 새로고침으로 AuthContext 업데이트)
+                const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+                if (redirectPath) {
+                    sessionStorage.removeItem('redirectAfterLogin');
+                    window.location.href = redirectPath;
+                } else {
+                    window.location.href = '/';
+                }
+            }
+        },
+        onError: (error) => {
+            console.error("로그인 실패:", error);
+            alert("로그인 실패");
         }
+    });
+
+    const handleSubmit = () => {
+        loginMutation.mutate(values);
     };
 
     const handleGoogleLogin = () => {
@@ -42,7 +65,7 @@ export default function LoginPage() {
         Object.values(values).some((value : string) => value === "");
 
     return(
-        <div className="flex flex-col ml-160 justify-center h-full gap-4 bg-[#000000]">
+        <div className="flex flex-col ml-130 justify-center h-full gap-4 bg-[#000000]">
             <div className="w-[300px] relative flex items-center justify-center mb-8">
                 <IoChevronBack className="absolute left-0 text-2xl cursor-pointer text-white" />
                 <h1 className="text-2xl text-white font-semibold">로그인</h1>
