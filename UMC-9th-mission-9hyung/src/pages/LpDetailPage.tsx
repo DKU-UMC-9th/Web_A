@@ -75,8 +75,8 @@ export default function LpDetailPage() {
 
   // mutate -> 비동기 요청을 실행하고, 콜백 함수를 이용해서 후속 작업 처리함
   // mutateAsync -> Promise를 반환해서 await 사용 가능
-  const { mutate: likeMutate } = usePostLike();
-  const { mutate: disLikeMutate } = useDeleteLike();
+  const { mutate: likeMutate } = usePostLike(Number(lpid));
+  const { mutate: disLikeMutate } = useDeleteLike(Number(lpid), me?.data.id);
 
   const { mutate: postComment } = usePostComment(Number(lpid));
 

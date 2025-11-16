@@ -14,26 +14,27 @@ const MyPage = () => {
   //const [data, setData] = useState<ResponseMyInfoDto | null>(null);
   const [openModal, setOpenModal] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["myInfo"],
     queryFn: getMyInfo,
+    staleTime: 0,
   });
 
-//   useEffect(() => {
-//     const getData = async () => {
-//       // 👇 try...catch를 추가합니다.
-//       try {
-//         const response = await getMyInfo();
-//         console.log("✅ [MyPage] 데이터 수신 성공:", response); // 👈 성공 로그
-//         setData(response);
-//       } catch (error) {
-//         // 👇 실패했을 때 에러를 콘솔에 찍습니다.
-//         console.error("❌ [MyPage] 데이터 수신 실패:", error);
-//       }
-//     };
-//     getData();
-//   }, []);
-    if (isLoading || !data) {
+  //   useEffect(() => {
+  //     const getData = async () => {
+  //       // 👇 try...catch를 추가합니다.
+  //       try {
+  //         const response = await getMyInfo();
+  //         console.log("✅ [MyPage] 데이터 수신 성공:", response); // 👈 성공 로그
+  //         setData(response);
+  //       } catch (error) {
+  //         // 👇 실패했을 때 에러를 콘솔에 찍습니다.
+  //         console.error("❌ [MyPage] 데이터 수신 실패:", error);
+  //       }
+  //     };
+  //     getData();
+  //   }, []);
+  if (isLoading || !data) {
     return <div className="text-white p-6">로딩 중...</div>;
   }
 
@@ -50,11 +51,11 @@ const MyPage = () => {
 
   return (
     <div className="flex justify-center py-16 px-4 ">
-
       {/* 카드 */}
-      <div className="w-full max-w-xl bg-[#ffffff] rounded-2xl shadow-xl p-10 
-     flex items-center justify-center gap-10">
-
+      <div
+        className="w-full max-w-xl bg-[#ffffff] rounded-2xl shadow-xl p-10 
+     flex items-center justify-center gap-10"
+      >
         {/* 왼쪽 — 프로필 이미지 */}
         <div className="flex-shrink-0">
           <img
@@ -66,7 +67,6 @@ const MyPage = () => {
 
         {/* 오른쪽 — 텍스트 정보 */}
         <div className="flex flex-col flex-1 gap-4">
-
           {/* 이름 + 설정 아이콘 */}
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-extrabold text-black">{user.name}</h2>
@@ -104,7 +104,10 @@ const MyPage = () => {
       {openModal && (
         <EditProfileModal
           user={user}
-          onClose={() => setOpenModal(false)}
+          onClose={() => {
+            setOpenModal(false);
+            refetch();
+          }}
         />
       )}
     </div>
