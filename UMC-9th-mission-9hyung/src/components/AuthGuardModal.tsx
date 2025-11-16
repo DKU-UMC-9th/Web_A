@@ -26,13 +26,13 @@ const AuthGuardModal = ({ open, onConfirm, onCancel }: AuthGuardModalProps) => {
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100"
+            className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100 cursor-pointer"
           >
             취소
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
           >
             확인
           </button>

@@ -6,6 +6,7 @@ import type { LpItem } from "../types/lp";
 import LpCard from "../components/LpCard";
 import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
 import { useInView } from "react-intersection-observer";
+import AddLpModal from "../components/AddLpModal";
 
 const LpCardSkeleton = () => (
   <div className="animate-pulse
@@ -19,6 +20,10 @@ const HomePage = () => {
 
   // ✅ 정렬 상태: 기본 최신순
   const [sort, setSort] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  
 
   // ref, inView
   // ref -> 특정한 HTML 요소 감시 가능
@@ -63,7 +68,7 @@ const HomePage = () => {
 
   // ✅ 새 LP 작성 버튼 클릭 시 이동
   const handleAddClick = () => {
-    navigate("/lps/new");
+    setIsAddModalOpen(true);
   };
 
   if (isPending) {
@@ -96,7 +101,7 @@ const HomePage = () => {
       <div className="flex justify-end gap-2 mb-4">
         <button
           onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors ${
+          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
             sort === PAGINATION_ORDER.desc
               ? "bg-blue-600 text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -106,7 +111,7 @@ const HomePage = () => {
         </button>
         <button
           onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors ${
+          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
             sort === PAGINATION_ORDER.asc
               ? "bg-blue-600 text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -134,11 +139,17 @@ const HomePage = () => {
         className="h-10"
       />
 
+      {isAddModalOpen && (
+        <AddLpModal onClose={() => setIsAddModalOpen(false)} />
+      )}
+
       {/* ✅ 우측 하단 플로팅 버튼 */}
       <button
         onClick={handleAddClick}
-        className="fixed bottom-8 right-8 flex items-center justify-center
+        className="fixed bottom-15 right-15 flex items-center justify-center
                    w-14 h-14 rounded-full bg-blue-600 text-white text-3xl font-bold
+                   z-50  /* ⭐ 카드보다 위에 위치! */
+                   cursor-pointer
                    shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
       >
         +

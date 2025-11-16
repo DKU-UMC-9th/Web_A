@@ -43,7 +43,8 @@ axiosInstance.interceptors.response.use(
     if (
         error.response &&
         error.response.status === 401 &&
-        !originalRequest._retry
+        !originalRequest._retry &&
+        originalRequest.headers.Authorization // 👈 [핵심] 이 조건을 추가합니다.
     ) {
         // refresh 엔드포인트 401 에러가 발생한 경우 (Unauthorized), 중복 재시도 방지를 위해 로그아웃 처리
         if (originalRequest.url === "/v1/auth/refresh") {
