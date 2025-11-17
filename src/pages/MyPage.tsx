@@ -7,6 +7,7 @@ import { updateMyInfo, type UpdateUserDto } from "../apis/user";
 import { uploadImage } from "../apis/lp";
 import useGetMyInfo from "../hooks/queries/useGetMyInfo";
 import { FaTimes, FaCog } from "react-icons/fa";
+import type { ResponseMyInfoDTO } from "../types/auth";
 
 export default function MyPage() {
     const navigate = useNavigate();
@@ -52,16 +53,43 @@ export default function MyPage() {
         },
     });
 
-    // 프로필 수정 mutation
+    // 프로필 수정 mutation (Optimistic Update)
     const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
         mutationFn: updateMyInfo,
+        // 서버 요청 전에 즉시 UI 업데이트 (Optimistic Update)
+        onMutate: async (newUserData) => {
+            // 진행 중인 쿼리 취소
+            await queryClient.cancelQueries({ queryKey: ["me"] });
+            
+            // 이전 데이터 백업
+            const previousUserData = queryClient.getQueryData(["me"]);
+            
+            // 즉시 UI 업데이트
+            queryClient.setQueryData<ResponseMyInfoDTO["data"]>(["me"], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    name: newUserData.name ?? old.name,
+                    bio: newUserData.bio ?? old.bio,
+                    avatar: newUserData.avatar ?? old.avatar,
+                };
+            });
+            
+            // 백업 데이터 반환 (에러 시 복구용)
+            return { previousUserData };
+        },
         onSuccess: () => {
+            // 서버 데이터로 다시 동기화
             queryClient.invalidateQueries({ queryKey: ["me"] });
             setIsModalOpen(false);
             setImageFile(null);
             alert("프로필이 성공적으로 수정되었습니다! ✨");
         },
-        onError: (error) => {
+        onError: (error, _newUserData, context) => {
+            // 에러 발생 시 이전 데이터로 롤백
+            if (context?.previousUserData) {
+                queryClient.setQueryData(["me"], context.previousUserData);
+            }
             console.error("프로필 수정 실패:", error);
             alert("프로필 수정에 실패했습니다. 다시 시도해주세요.");
         },

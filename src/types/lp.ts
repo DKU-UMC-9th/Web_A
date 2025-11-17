@@ -9,6 +9,7 @@ export type Likes = {
     id: number;
     userId: number;
     lpId: number;
+    createdAt: string;
 }; 
 
 export type Lp = {

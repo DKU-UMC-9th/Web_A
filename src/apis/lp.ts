@@ -110,3 +110,15 @@ export const updateLp = async (lpId: string, lpData: UpdateLpDto): Promise<Lp> =
 export const deleteLp = async (lpId: string): Promise<void> => {
     await axiosInstance.delete(`/v1/lps/${lpId}`);
 };
+
+// 좋아요 추가
+export const addLpLike = async (lpId: string): Promise<{ id: number; userId: number; lpId: number }> => {
+    const { data } = await axiosInstance.post(`/v1/lps/${lpId}/likes`);
+    return data.data;
+};
+
+// 좋아요 취소
+export const removeLpLike = async (lpId: string): Promise<{ id: number; userId: number; lpId: number }> => {
+    const { data } = await axiosInstance.delete(`/v1/lps/${lpId}/likes`);
+    return data.data;
+};
