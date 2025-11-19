@@ -3,14 +3,21 @@ import { axiosInstance } from "./axios";
 
 export type SortOrder = "oldest" | "newest";
 
+// SortOrder를 API order 파라미터로 변환
+const convertSortOrder = (sort: SortOrder): string => {
+  return sort === "newest" ? "desc" : "asc";
+};
+
 // LP 목록 조회
-export const getLpList = async (sort: SortOrder = "newest", cursor?: number): Promise<ResponseLpListDTO> => {
+export const getLpList = async (sort: SortOrder = "newest", cursor?: number, limit?: number, search?: string): Promise<ResponseLpListDTO> => {
   const sortParam = sort === "newest" ? "desc" : "asc";
 
   const { data } = await axiosInstance.get("/v1/lps", {
     params: {
       sort: sortParam,
-      ...(cursor && { cursor })
+      ...(cursor && { cursor }),
+      ...(limit !== undefined && { limit }),
+      ...(search && { search }),
     }
   });
 
@@ -71,3 +78,29 @@ export const deleteLp = async (lpId: number): Promise<ResponseDeleteLpDTO> => {
   return data;
 };
 
+// LP 검색 (제목 또는 태그)
+export const searchLps = async ({
+  search,
+  type = "title",
+  sort = "newest",
+  cursor,
+  limit,
+}: {
+  search: string;
+  type?: 'title' | 'tag';
+  sort?: SortOrder;
+  cursor?: number;
+  limit?: number;
+}): Promise<ResponseLpListDTO> => {
+  const { data } = await axiosInstance.get("/v1/lps", {
+    params: {
+      search,
+      type,
+      order: convertSortOrder(sort),
+      ...(cursor !== undefined && { cursor }),
+      ...(limit !== undefined && { limit }),
+    },
+  });
+
+  return data;
+};

@@ -92,7 +92,7 @@ export default function SideBar({ className }: SideBarProps) {
                 {/* 메뉴 리스트 */}
                 <nav className="flex flex-col mt-4 gap-4 px-4 text-sm font-medium">
                     <Link
-                        to="/search"
+                        to="/"
                         className="flex items-center gap-3 hover:text-pink-400 transition-colors"
                         onClick={() => setIsOpen(false)}
                     >
