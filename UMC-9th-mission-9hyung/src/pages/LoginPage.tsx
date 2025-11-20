@@ -2,34 +2,17 @@ import React, { useEffect } from "react";
 
 import { type UserSigninInformation, validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
   const { login, accessToken } = useAuth();
-  //const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (accessToken) {
-      navigate("/");
-    }
-  }, [navigate, accessToken])
+  // ✅ 이전 페이지 경로 기억 (ProtectedLayout에서 전달한 from)
+  const from = (location.state as { from?: string })?.from || "/";
 
-  const handleSubmit = async () => {
-    try {
-      await login(values);
-      navigate("/my");
-    } catch {
-      alert("로그인 실패");
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = import.meta.env.VITE_SERVER_API_URL + "/v1/auth/google/login";
-  }
-
-  //const navigate = useNavigate();
   const { values, errors, touched, getInputProps } =
     useForm<UserSigninInformation>({
       initialValue: {
@@ -39,20 +22,32 @@ const LoginPage = () => {
       validiate: validateSignin,
     });
 
+  const handleSubmit = async () => {
+    console.log("🧩 useAuth() 결과:", useAuth);
+    console.log("🧩 useAuth().login:", login);
+    try {
+      await login(values);
+
+      // ✅ 로그인 성공 후 원래 경로(from)로 복귀
+      navigate(from, { replace: true });
+    } catch {
+      alert("로그인 실패");
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const redirectUrl =
+      import.meta.env.VITE_SERVER_API_URL + "/v1/auth/google/login";
+    
+    // ✅ 백엔드가 redirect 파라미터를 무시해도 대비용으로 localStorage에 저장
+    localStorage.setItem("google_login_redirect_path", from);
+    // ✅ 구글 로그인 후 돌아올 redirect도 설정 가능
+    window.location.href = `${redirectUrl}?redirect=${encodeURIComponent(from)}`;
+  };
+
   const isDisabled =
     Object.values(errors || {}).some((error) => error.length > 0) ||
     Object.values(values).some((value) => value === "");
-  // const [formValues, setFormValues] = useState({
-  //   email: "",
-  //   password: "",
-  // });
-
-  // const handleChange = (name: string, text: string) => {
-  //   setFormValues({
-  //     ...formValues,
-  //     [name]: text,
-  //   });
-  // };
 
   return (
     <div className="w-full flex items-center justify-center p-12">
@@ -137,7 +132,7 @@ const LoginPage = () => {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isDisabled}
+            //disabled={isDisabled}
             className="w-full bg-blue-600 text-white py-3 rounded-md text-lg font-bold cursor-pointer hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             로그인
