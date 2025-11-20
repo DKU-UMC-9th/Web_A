@@ -9,6 +9,7 @@ import { useInView } from "react-intersection-observer";
 import AddLpModal from "../components/AddLpModal";
 import SearchBar from "../components/SearchBar";
 import useDebounce from "../hooks/useDebounce";
+import useThrottle from "../hooks/useThrottle";
 
 const LpCardSkeleton = () => (
   <div
@@ -20,7 +21,12 @@ const LpCardSkeleton = () => (
 );
 
 const HomePage = () => {
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+
   const navigate = useNavigate();
+  const location = useLocation();
+
 
   // ✅ 정렬 상태: 기본 최신순
   const [sort, setSort] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
@@ -33,9 +39,23 @@ const HomePage = () => {
 
   const [searchBarOpen, setSearchBarOpen] = useState(false);
 
-  const debouncedSearch = useDebounce(search, 500);
+  const [scrollY, setScrollY] = useState(0);
 
-  const location = useLocation();
+  const debouncedSearch = useDebounce(search, 500);
+  //const debouncedSearch = useThrottle(search, 1000);
+
+  const throttleScrollY = useThrottle(scrollY, 1000);
+
+  const {
+    data,
+    isFetching,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+    fetchNextPage,
+    isError,
+  } = useGetInfiniteLpList(debouncedSearch, sort, 20);
+
 
   useEffect(() => {
     if (location.state?.openSearch) {
@@ -50,23 +70,6 @@ const HomePage = () => {
   //   threshold: 0,
   // })
 
-  // const { data, isPending, isError, refetch } = useGetLpList({
-  //   order: sort,
-  //   limit: 50,
-  // });
-
-  const {
-    data,
-    isFetching,
-    hasNextPage,
-    isFetchingNextPage,
-    isPending,
-    fetchNextPage,
-    isError,
-  } = useGetInfiniteLpList(debouncedSearch, sort, 20);
-
-  const observerRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     if (!observerRef.current) return;
     const observer = new IntersectionObserver(
@@ -80,6 +83,21 @@ const HomePage = () => {
     observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [observerRef, hasNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log(`Throttled Scroll Y: ${throttleScrollY}`);
+  }, [throttleScrollY])
 
   // ✅ 정렬 변경 핸들러
   const handleSortChange = (order: PaginationOrder) => setSort(order);
@@ -115,29 +133,27 @@ const HomePage = () => {
 
   return (
     <div className="relative p-4">
-      
+
       <div className="flex items-center justify-between mb-5 gap-10">
-        
+
         <SearchBar search={search} setSearch={setSearch} />
         {/* ✅ 정렬 버튼 2개 */}
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
-            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-              sort === PAGINATION_ORDER.desc
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${sort === PAGINATION_ORDER.desc
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
           >
             최신순
           </button>
           <button
             onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
-            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-              sort === PAGINATION_ORDER.asc
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${sort === PAGINATION_ORDER.asc
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
           >
             오래된순
           </button>
