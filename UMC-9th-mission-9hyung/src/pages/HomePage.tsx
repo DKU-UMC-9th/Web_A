@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useGetLpList from "../hooks/queries/useGetLpList";
 import { PAGINATION_ORDER, type PaginationOrder } from "../enums/common";
 import type { LpItem } from "../types/lp";
@@ -7,12 +7,16 @@ import LpCard from "../components/LpCard";
 import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
 import { useInView } from "react-intersection-observer";
 import AddLpModal from "../components/AddLpModal";
+import SearchBar from "../components/SearchBar";
+import useDebounce from "../hooks/useDebounce";
 
 const LpCardSkeleton = () => (
-  <div className="animate-pulse
+  <div
+    className="animate-pulse
                   bg-neutral-200 dark:bg-neutral-700
                   aspect-square rounded-md
-                  ring-1 ring-black/5 dark:ring-white/10 shadow-sm" />
+                  ring-1 ring-black/5 dark:ring-white/10 shadow-sm"
+  />
 );
 
 const HomePage = () => {
@@ -20,10 +24,24 @@ const HomePage = () => {
 
   // ✅ 정렬 상태: 기본 최신순
   const [sort, setSort] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
-  
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  
+
+  const [search, setSearch] = useState("");
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const [searchBarOpen, setSearchBarOpen] = useState(false);
+
+  const debouncedSearch = useDebounce(search, 500);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openSearch) {
+      setIsSearchOpen(true);
+    }
+  }, [location.state]);
 
   // ref, inView
   // ref -> 특정한 HTML 요소 감시 가능
@@ -45,7 +63,7 @@ const HomePage = () => {
     isPending,
     fetchNextPage,
     isError,
-  } = useGetInfiniteLpList(20, "", sort);
+  } = useGetInfiniteLpList(debouncedSearch, sort, 20);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,40 +115,52 @@ const HomePage = () => {
 
   return (
     <div className="relative p-4">
-      {/* ✅ 정렬 버튼 2개 */}
-      <div className="flex justify-end gap-2 mb-4">
-        <button
-          onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-            sort === PAGINATION_ORDER.desc
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          최신순
-        </button>
-        <button
-          onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-            sort === PAGINATION_ORDER.asc
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          오래된순
-        </button>
+      
+      <div className="flex items-center justify-between mb-5 gap-10">
+        
+        <SearchBar search={search} setSearch={setSearch} />
+        {/* ✅ 정렬 버튼 2개 */}
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
+              sort === PAGINATION_ORDER.desc
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            최신순
+          </button>
+          <button
+            onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
+              sort === PAGINATION_ORDER.asc
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            오래된순
+          </button>
+        </div>
       </div>
 
       {/* LP 카드 목록 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* 데이터가 이미 로드된 카드들은 그대로 */}
         {data?.pages.map((page) =>
-          page.data.data.map((lp: LpItem) => <LpCard key={lp.id} lp={lp} />)
+          page.data.data.map((lp: LpItem) => (
+            <LpCard
+              key={lp.id}
+              lp={lp}
+            />
+          )),
         )}
 
         {/* ✅ 다음 페이지 로딩 시에만 하단 스켈레톤 20개 */}
         {isFetchingNextPage &&
-          Array.from({ length: 20 }).map((_, i) => <LpCardSkeleton key={`sk-${i}`} />)}
+          Array.from({ length: 20 }).map((_, i) => (
+            <LpCardSkeleton key={`sk-${i}`} />
+          ))}
       </div>
 
       {/* ✅ 옵저버 감시용 div */}

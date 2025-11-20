@@ -4,15 +4,17 @@ import type { PaginationOrder } from "../../enums/common";
 import { QUERY_KEY } from "../../constants/key";
 
 function useGetInfiniteLpList(
-  limit: number,
-  search: string,
+  
+  search: string | null,
   order: PaginationOrder,
+  limit: number,
 ) {
   return useInfiniteQuery({
     queryFn: ({ pageParam }) =>
-      getLpList({ cursor: pageParam, limit, search, order }),
-    queryKey: [QUERY_KEY.lps, search, order],
+      getLpList({ cursor: pageParam, limit, search: search ?? "", order }),
+    queryKey: [QUERY_KEY.lps, {search: search ?? "", order}],
     initialPageParam: 0,
+    //enabled: search !== null && search.trim() !== "",
     getNextPageParam: (lastPage, allPages) => {
       console.log(lastPage, allPages);
       return lastPage.data.hasNext ? lastPage.data.nextCursor : undefined;
