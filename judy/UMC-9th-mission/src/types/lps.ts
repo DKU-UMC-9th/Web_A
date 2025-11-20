@@ -54,3 +54,6 @@ export type LpDetail = LpItem & {
 };
 
 export type ResponseLpDetailDTO = CommonResponse<LpDetail>;
+
+// LP 삭제 응답 DTO
+export type ResponseDeleteLpDTO = CommonResponse<null>;
