@@ -1,10 +1,11 @@
 import { Search, User } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { deleteUser } from '../apis/auth';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useSidebar } from '../hooks/useSidebar';
 import { LOCAL_STORAGE_KEY } from '../constants/key';
 
 interface SideBarProps {
@@ -13,15 +14,13 @@ interface SideBarProps {
 
 export default function SideBar({ className }: SideBarProps) {
     const navigate = useNavigate();
-    const [isOpen, setIsOpen] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    // useSidebar 커스텀 훅 사용
+    const { isOpen, open, close, toggle } = useSidebar(true);
 
     const { removeItem: removeAccessToken } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
     const { removeItem: removeRefreshToken } = useLocalStorage(LOCAL_STORAGE_KEY.refreshToken);
-
-    const toggleSidebar = () => {
-        setIsOpen(!isOpen);
-    };
 
     // 회원 탈퇴 mutation
     const deleteUserMutation = useMutation({
@@ -51,12 +50,35 @@ export default function SideBar({ className }: SideBarProps) {
         setShowDeleteModal(false);
     };
 
+    // ESC 키로 Sidebar 또는 모달 닫기
+    useEffect(() => {
+        // keydown 이벤트 핸들러
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                // 우선순위: 모달이 열려있으면 모달을 먼저 닫고, 아니면 Sidebar 닫기
+                if (showDeleteModal) {
+                    cancelDelete();
+                } else if (isOpen) {
+                    close();
+                }
+            }
+        };
+
+        // keydown 이벤트 리스너 등록
+        window.addEventListener('keydown', handleEscapeKey);
+
+        // 클린업 함수: 컴포넌트 언마운트 또는 의존성 변경 시 이벤트 리스너 제거
+        return () => {
+            window.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [isOpen, showDeleteModal, close]); // 의존성 배열에 필요한 값들 추가
+
     return (
         <>
-            {/* 버거 버튼 */}
+            {/* 버거 버튼 - toggle 함수 사용 */}
             <button
-                onClick={toggleSidebar}
-                className="fixed top-4 left-4 z-50 text-white cursor-pointer"
+                onClick={toggle}
+                className="fixed top-4 left-4 z-50 text-white cursor-pointer hover:scale-110 transition-transform"
                 aria-label="메뉴 토글"
             >
                 <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -64,11 +86,11 @@ export default function SideBar({ className }: SideBarProps) {
                 </svg>
             </button>
 
-            {/* 오버레이 - 사이드바 열릴 때 배경 */}
+            {/* 오버레이 - close 함수 사용 */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-                    onClick={toggleSidebar}
+                    className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity duration-300"
+                    onClick={close}
                 />
             )}
 
@@ -77,24 +99,24 @@ export default function SideBar({ className }: SideBarProps) {
                     ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                     ${className || ''}`}
             >
-                {/* 상단 로고 + 메뉴버튼 */}
+                {/* 상단 로고 - open 함수 사용 */}
                 <div className="flex items-center justify-center px-4 h-20 ml-5">
-                    <span className="text-pink-500 text-xl font-bold tracking-wide cursor-pointer"
+                    <span className="text-pink-500 text-xl font-bold tracking-wide cursor-pointer hover:text-pink-400 transition-colors"
                             onClick={() => {
                                 navigate("/");
-                                setIsOpen(true);
+                                open();
                             }}
                     >
                         돌려돌려 LP판
                     </span>
                 </div>
 
-                {/* 메뉴 리스트 */}
+                {/* 메뉴 리스트 - close 함수 사용 */}
                 <nav className="flex flex-col mt-4 gap-4 px-4 text-sm font-medium">
                     <Link
                         to="/"
                         className="flex items-center gap-3 hover:text-pink-400 transition-colors"
-                        onClick={() => setIsOpen(false)}
+                        onClick={close}
                     >
                         <Search className="w-5 h-5" />
                         <span>찾기</span>
@@ -103,7 +125,7 @@ export default function SideBar({ className }: SideBarProps) {
                     <Link
                         to="/mypage"
                         className="flex items-center gap-3 hover:text-pink-400 transition-colors"
-                        onClick={() => setIsOpen(false)}
+                        onClick={close}
                     >
                         <User className="w-5 h-5" />
                         <span>마이페이지</span>
