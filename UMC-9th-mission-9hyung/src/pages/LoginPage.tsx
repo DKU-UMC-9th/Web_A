@@ -1,28 +1,35 @@
-import React from "react";
-import { useState } from "react";
+import React, { useEffect } from "react";
+
 import { type UserSigninInformation, validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { Link, useNavigate } from "react-router-dom";
-import { postSignin } from "../apis/auth";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import { LOCAL_STORAGE_KEY } from "../constants/key";
+import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
-  const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+  const { login, accessToken } = useAuth();
+  //const { setItem } = useLocalStorage(LOCAL_STORAGE_KEY.accessToken);
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    if (accessToken) {
+      navigate("/");
+    }
+  }, [navigate, accessToken])
 
   const handleSubmit = async () => {
-    console.log(values);
     try {
-      const response = await postSignin(values);
-      setItem(response.data.accessToken);
-    } catch (error) {
-      alert("로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.");
+      await login(values);
+      navigate("/my");
+    } catch {
+      alert("로그인 실패");
     }
-
-    //console.log(response);
   };
-  const navigate = useNavigate();
+
+  const handleGoogleLogin = () => {
+    window.location.href = import.meta.env.VITE_SERVER_API_URL + "/v1/auth/google/login";
+  }
+
+  //const navigate = useNavigate();
   const { values, errors, touched, getInputProps } =
     useForm<UserSigninInformation>({
       initialValue: {
@@ -147,6 +154,8 @@ const LoginPage = () => {
         {/* 구글 로그인 버튼 */}
         <button
           type="button"
+          onClick={handleGoogleLogin}
+          //disabled={isDisabled}
           className="w-full flex items-center justify-center gap-5 py-3 border cursor-pointer border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
         >
           <img
