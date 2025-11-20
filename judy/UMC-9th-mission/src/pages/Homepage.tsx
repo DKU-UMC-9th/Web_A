@@ -5,6 +5,7 @@ import SortButton from "../components/SortButton";
 import LpCard from "../components/LpCard";
 import LpCardSkeleton from "../components/LpCardSkeleton";
 import SearchBar from "../components/SearchBar";
+import ScrollToTopButton from "../components/ScrollToTopButton";
 import { useDebounce } from "../hooks/useDebounce";
 
 export default function HomePage() {
@@ -118,6 +119,9 @@ export default function HomePage() {
 
     return (
         <div className="p-16 text-white">
+            {/* 맨 위로 가기 버튼 (useThrottle 적용) */}
+            <ScrollToTopButton />
+
             {/* 검색 바 */}
             <SearchBar
                 onSearchChange={handleSearchChange}
