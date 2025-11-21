@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { ChangeEvent } from "react";
 import useGetLpDetail from "../hooks/queries/useGetLpDetail";
 import useGetMyInfo from "../hooks/queries/useGetMyInfo";
 import { FaArrowLeft } from "react-icons/fa";
-import { useLpMutations } from "../hooks/useLpMutations";
+import { useLpMutations } from "../hooks/mutations/useLpMutations";
 import LpInfo from "../components/LpInfo";
 import LpEditForm from "../components/LpEditForm";
 import CommentSection from "../components/CommentSection";
@@ -17,7 +17,6 @@ const LpDetailPage = () => {
     const [isEditingLp, setIsEditingLp] = useState(false);
     const [editLpTitle, setEditLpTitle] = useState("");
     const [editLpContent, setEditLpContent] = useState("");
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     
@@ -227,9 +226,8 @@ const LpDetailPage = () => {
                                 title={editLpTitle}
                                 content={editLpContent}
                                 imageFile={imageFile}
-                                fileInputRef={fileInputRef}
-                                onTitleChange={(e) => setEditLpTitle(e.target.value)}
-                                onContentChange={(e) => setEditLpContent(e.target.value)}
+                                onTitleChange={(value) => setEditLpTitle(value)}
+                                onContentChange={(value) => setEditLpContent(value)}
                                 onImageChange={handleImageChange}
                                 onSubmit={handleLpEditSubmit}
                                 onCancel={handleLpEditCancel}

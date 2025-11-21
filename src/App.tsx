@@ -1,10 +1,7 @@
 import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router-dom'
-
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import './App.css'
-
-
 
 import HomePage from './pages/Homepage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -17,6 +14,7 @@ import CreateLpPage from './pages/CreateLpPage';
 import LpDetailPage from './pages/LpDetailPage';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedLayout from './layouts/ProtectedLayout';
+import { queryClient } from './lib/queryClient';
 
 
 
@@ -54,14 +52,6 @@ const protectedRoutes:RouteObject[] = [
 ];
 
 const router = createBrowserRouter([...publicRoutes, ...protectedRoutes]);
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 3,
-    },
-  },
-});
 
 function App() {
   return (

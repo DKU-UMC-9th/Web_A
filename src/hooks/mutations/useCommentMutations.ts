@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createComment, updateComment, deleteComment } from "../apis/lp";
+import { createComment, updateComment, deleteComment } from "../../apis/lp";
 
 export const useCommentMutations = (lpid: string) => {
     const queryClient = useQueryClient();

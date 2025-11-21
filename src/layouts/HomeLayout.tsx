@@ -5,18 +5,12 @@ import Sidebar from "../components/Sidebar";
 import Footer from "../components/Footer";
 import FloatingActionButton from "../components/FloatingActionButton";
 import CreateLpModal from "../components/CreateLpModal";
+import { useSidebar } from "../hooks/useSidebar";
 
 export default function HomeLayout() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    // useSidebar 커스텀 훅 사용
+    const { isOpen: isSidebarOpen, toggle: toggleSidebar, close: closeSidebar } = useSidebar();
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
-
-    const closeSidebar = () => {
-        setIsSidebarOpen(false);
-    };
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -40,7 +34,7 @@ export default function HomeLayout() {
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [isSidebarOpen]);
+    }, [isSidebarOpen, closeSidebar]);
 
     return (
         <div className="min-h-screen flex flex-col">

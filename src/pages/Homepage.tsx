@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useGetLpInfiniteList from "../hooks/queries/useGetLpInfiniteList";
+import useDebounce from "../hooks/useDebounce";
 import type { Lp } from "../types/lp";
+import { FaSearch } from "react-icons/fa";
 
 
 const HomePage = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState<"asc" | "desc">("desc"); // 기본값: 최신순(desc)
+    const [searchTerm, setSearchTerm] = useState(""); // 검색어 입력 상태
     const observerTarget = useRef<HTMLDivElement>(null);
+    
+    // useDebounce로 검색어 지연 처리 (300ms)
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     
     const { 
         data, 
@@ -17,7 +23,11 @@ const HomePage = () => {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
-    } = useGetLpInfiniteList({ order, limit: 20 });
+    } = useGetLpInfiniteList({ 
+        order, 
+        search: debouncedSearchTerm.trim(), // 디바운스된 검색어 사용
+        limit: 20 
+    });
     
     // 모든 페이지의 데이터를 flat하게 합침
     const lpList: Lp[] = data?.pages.flat() || [];
@@ -44,6 +54,12 @@ const HomePage = () => {
             }
         };
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+    
+    // 검색어 초기화
+    const handleClearSearch = () => {
+        setSearchTerm("");
+    };
 
     // 스켈레톤 카드 컴포넌트
     const SkeletonCard = () => (
@@ -92,30 +108,70 @@ const HomePage = () => {
 
     return (
         <div className="min-h-screen bg-black text-white p-8">
-            {/* 헤더 영역 - 정렬 버튼 */}
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">LP 목록 ({lpList.length}개)</h2>
-                <div className="flex gap-2 bg-gray-800 rounded-lg p-1">
-                    <button
-                        onClick={() => setOrder("asc")}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                            order === "asc" 
-                                ? "bg-white text-black font-medium" 
-                                : "text-gray-400 hover:text-white"
-                        }`}
-                    >
-                        오래된순
-                    </button>
-                    <button
-                        onClick={() => setOrder("desc")}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                            order === "desc" 
-                                ? "bg-white text-black font-medium" 
-                                : "text-gray-400 hover:text-white"
-                        }`}
-                    >
-                        최신순
-                    </button>
+            {/* 헤더 영역 */}
+            <div className="mb-6 space-y-4">
+                {/* 검색바 */}
+                <div className="max-w-2xl mx-auto">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="LP 제목이나 내용으로 검색하세요"
+                            className="w-full px-6 py-4 pl-14 bg-gray-900 text-white rounded-full border-2 border-gray-700 focus:border-pink-500 focus:outline-none transition-colors placeholder-gray-500"
+                        />
+                        <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={handleClearSearch}
+                                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    {/* 디바운스 안내 */}
+                    {searchTerm && searchTerm !== debouncedSearchTerm && (
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                            입력 중... (300ms 후 검색)
+                        </p>
+                    )}
+                </div>
+
+                {/* 결과 카운트 및 정렬 버튼 */}
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">
+                        {debouncedSearchTerm ? (
+                            <>
+                                '<span className="text-pink-500">{debouncedSearchTerm}</span>' 검색 결과 ({lpList.length}개)
+                            </>
+                        ) : (
+                            <>LP 목록 ({lpList.length}개)</>
+                        )}
+                    </h2>
+                    <div className="flex gap-2 bg-gray-800 rounded-lg p-1">
+                        <button
+                            onClick={() => setOrder("asc")}
+                            className={`px-4 py-2 rounded-md transition-colors ${
+                                order === "asc" 
+                                    ? "bg-white text-black font-medium" 
+                                    : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                            오래된순
+                        </button>
+                        <button
+                            onClick={() => setOrder("desc")}
+                            className={`px-4 py-2 rounded-md transition-colors ${
+                                order === "desc" 
+                                    ? "bg-white text-black font-medium" 
+                                    : "text-gray-400 hover:text-white"
+                            }`}
+                        >
+                            최신순
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -189,9 +245,24 @@ const HomePage = () => {
             {lpList.length === 0 && !isPending && (
                 <div className="flex justify-center items-center h-96">
                     <div className="text-center">
-                        <div className="text-6xl mb-4">🎵</div>
-                        <p className="text-gray-500 text-lg">아직 LP가 없습니다.</p>
-                        <p className="text-gray-600 text-sm mt-2">첫 번째 LP를 만들어보세요!</p>
+                        <div className="text-6xl mb-4">{debouncedSearchTerm ? "🔍" : "🎵"}</div>
+                        {debouncedSearchTerm ? (
+                            <>
+                                <p className="text-gray-500 text-lg">'{debouncedSearchTerm}' 검색 결과가 없습니다.</p>
+                                <p className="text-gray-600 text-sm mt-2">다른 검색어로 시도해보세요.</p>
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="mt-4 px-6 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors"
+                                >
+                                    전체 목록 보기
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-gray-500 text-lg">아직 LP가 없습니다.</p>
+                                <p className="text-gray-600 text-sm mt-2">첫 번째 LP를 만들어보세요!</p>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

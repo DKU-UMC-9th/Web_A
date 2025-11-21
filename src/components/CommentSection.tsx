@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import type { Comment } from "../types/lp";
-import { useCommentMutations } from "../hooks/useCommentMutations";
+import { useCommentMutations } from "../hooks/mutations/useCommentMutations";
 import useGetCommentInfiniteList from "../hooks/queries/useGetCommentInfiniteList";
 
 interface CommentSectionProps {
