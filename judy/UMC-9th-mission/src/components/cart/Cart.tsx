@@ -1,23 +1,15 @@
-import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { calculateTotals } from '../../features/cart/cartSlice';
-import { openModal } from '../../features/modal/modalSlice';
+import { useCartStore } from '../../store/useCartStore';
 import CartItem from './CartItem';
 import Modal from '../modal/Modal';
 import { ShoppingCart } from 'lucide-react';
 
 const Cart = () => {
-  const dispatch = useAppDispatch();
-  const { cartItems, amount, total } = useAppSelector((state) => state.cart);
-
-  // cartItems가 변경될 때마다 totals 재계산
-  useEffect(() => {
-    dispatch(calculateTotals());
-  }, [cartItems, dispatch]);
+  // Zustand 스토어에서 상태와 액션 가져오기
+  const { cartItems, amount, total, openModal } = useCartStore();
 
   const handleClearCart = () => {
-    // window.confirm 대신 Redux 모달 열기
-    dispatch(openModal());
+    // Zustand 모달 열기
+    openModal();
   };
 
   return (

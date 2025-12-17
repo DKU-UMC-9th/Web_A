@@ -1,23 +1,21 @@
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { closeModal } from '../../features/modal/modalSlice';
-import { clearCart } from '../../features/cart/cartSlice';
+import { useCartStore } from '../../store/useCartStore';
 
 const Modal = () => {
-  const dispatch = useAppDispatch();
-  const isOpen = useAppSelector((state) => state.modal.isOpen);
+  // Zustand 스토어에서 상태와 액션 가져오기
+  const { isModalOpen, closeModal, clearCart } = useCartStore();
 
   // 모달이 닫혀있으면 아무것도 렌더링하지 않음
-  if (!isOpen) return null;
+  if (!isModalOpen) return null;
 
   const handleNo = () => {
     // "아니요" 버튼 클릭 시 모달만 닫기
-    dispatch(closeModal());
+    closeModal();
   };
 
   const handleYes = () => {
     // "네" 버튼 클릭 시 장바구니 삭제 + 모달 닫기
-    dispatch(clearCart());
-    dispatch(closeModal());
+    clearCart();
+    closeModal();
   };
 
   return (

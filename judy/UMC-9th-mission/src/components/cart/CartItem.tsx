@@ -1,5 +1,4 @@
-import { useAppDispatch } from '../../store/hooks';
-import { increase, decrease, removeItem } from '../../features/cart/cartSlice';
+import { useCartStore } from '../../store/useCartStore';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface CartItemProps {
@@ -12,18 +11,19 @@ interface CartItemProps {
 }
 
 const CartItem = ({ id, title, singer, price, img, amount }: CartItemProps) => {
-  const dispatch = useAppDispatch();
+  // Zustand 스토어에서 액션 가져오기
+  const { increase, decrease, removeItem } = useCartStore();
 
   const handleIncrease = () => {
-    dispatch(increase(id));
+    increase(id);
   };
 
   const handleDecrease = () => {
-    dispatch(decrease(id));
+    decrease(id);
   };
 
   const handleRemove = () => {
-    dispatch(removeItem(id));
+    removeItem(id);
   };
 
   return (
