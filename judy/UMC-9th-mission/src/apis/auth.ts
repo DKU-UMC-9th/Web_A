@@ -1,4 +1,4 @@
-import type { RequestSigninDTO, RequestSignupDTO, ResponseMyInfoDTO, ResponseSigninDTO, ResponseSignupDTO } from "../types/auth";
+import type { RequestSigninDTO, RequestSignupDTO, RequestUpdateMyInfoDTO, ResponseMyInfoDTO, ResponseSigninDTO, ResponseSignupDTO, ResponseUpdateMyInfoDTO, ResponseDeleteUserDTO } from "../types/auth";
 import { axiosInstance } from "./axios";
 
 export const postSignup = async (body: RequestSignupDTO):Promise<ResponseSignupDTO> => {
@@ -26,5 +26,15 @@ export const postRefreshToken = async (refreshToken: string): Promise<ResponseSi
     const { data } = await axiosInstance.post("/v1/auth/refresh", {
         refresh: refreshToken
     });
+    return data;
+}
+
+export const patchMyInfo = async (body: RequestUpdateMyInfoDTO): Promise<ResponseUpdateMyInfoDTO> => {
+    const { data } = await axiosInstance.patch("/v1/users", body);
+    return data;
+}
+
+export const deleteUser = async (): Promise<ResponseDeleteUserDTO> => {
+    const { data } = await axiosInstance.delete("/v1/users");
     return data;
 }

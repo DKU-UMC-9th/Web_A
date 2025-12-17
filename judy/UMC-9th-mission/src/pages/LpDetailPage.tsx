@@ -1,13 +1,16 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { getLpDetail } from "../apis/lps";
-import { getComments } from "../apis/comments";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getLpDetail, deleteLp, updateLp } from "../apis/lps";
+import { getComments, postComment, patchComment, deleteComment } from "../apis/comments";
+import { getMyInfo } from "../apis/auth";
 import { Heart, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import CommentSection from "../components/CommentSection";
 import CommentCard from "../components/CommentCard";
 import CommentSkeleton from "../components/CommentSkeleton";
+import EditLpModal from "../components/EditLpModal";
+import { useLikeLp } from "../hooks/useLikeLp";
 
 export default function LpDetailPage() {
     const { lpId } = useParams<{ lpId: string }>();
@@ -15,7 +18,9 @@ export default function LpDetailPage() {
     const location = useLocation();
     const { accessToken } = useAuth();
     const [order, setOrder] = useState<"asc" | "desc">("desc");
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const commentObserverTarget = useRef<HTMLDivElement>(null);
+    const queryClient = useQueryClient();
 
     // 비로그인 사용자 체크
     useEffect(() => {
@@ -32,6 +37,13 @@ export default function LpDetailPage() {
         queryKey: ['lp', lpId],
         queryFn: () => getLpDetail(Number(lpId)),
         enabled: !!lpId,
+    });
+
+    // 현재 사용자 정보 조회
+    const { data: userInfo } = useQuery({
+        queryKey: ['user', 'me'],
+        queryFn: getMyInfo,
+        enabled: !!accessToken,
     });
 
     // 댓글 목록 조회 (useInfiniteQuery)
@@ -55,6 +67,125 @@ export default function LpDetailPage() {
     // 댓글 정렬 변경 핸들러
     const handleOrderChange = (newOrder: "asc" | "desc") => {
         setOrder(newOrder);
+    };
+
+    // 댓글 작성 mutation
+    const createCommentMutation = useMutation({
+        mutationFn: (content: string) => postComment(Number(lpId), { content }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lpComments', lpId] });
+        },
+        onError: (error) => {
+            console.error('Failed to create comment:', error);
+            alert('댓글 작성에 실패했습니다.');
+        }
+    });
+
+    // 댓글 수정 mutation
+    const updateCommentMutation = useMutation({
+        mutationFn: ({ commentId, content }: { commentId: number; content: string }) =>
+            patchComment(Number(lpId), commentId, { content }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lpComments', lpId] });
+        },
+        onError: (error) => {
+            console.error('Failed to update comment:', error);
+            alert('댓글 수정에 실패했습니다.');
+        }
+    });
+
+    // 댓글 삭제 mutation
+    const deleteCommentMutation = useMutation({
+        mutationFn: (commentId: number) => deleteComment(Number(lpId), commentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lpComments', lpId] });
+        },
+        onError: (error) => {
+            console.error('Failed to delete comment:', error);
+            alert('댓글 삭제에 실패했습니다.');
+        }
+    });
+
+    const handleCreateComment = (content: string) => {
+        createCommentMutation.mutate(content);
+    };
+
+    const handleUpdateComment = (commentId: number, content: string) => {
+        updateCommentMutation.mutate({ commentId, content });
+    };
+
+    const handleDeleteComment = (commentId: number) => {
+        if (window.confirm('댓글을 삭제하시겠습니까?')) {
+            deleteCommentMutation.mutate(commentId);
+        }
+    };
+
+    // LP 삭제 mutation
+    const deleteLpMutation = useMutation({
+        mutationFn: () => deleteLp(Number(lpId)),
+        onSuccess: () => {
+            alert('LP가 삭제되었습니다.');
+            navigate('/');
+        },
+        onError: (error) => {
+            console.error('Failed to delete LP:', error);
+            alert('LP 삭제에 실패했습니다.');
+        }
+    });
+
+    const handleDeleteLp = () => {
+        if (window.confirm('정말로 이 LP를 삭제하시겠습니까?')) {
+            deleteLpMutation.mutate();
+        }
+    };
+
+    // LP 수정 mutation
+    const updateLpMutation = useMutation({
+        mutationFn: (data: { title: string; content: string; tags: string[]; thumbnail?: string }) =>
+            updateLp(Number(lpId), {
+                title: data.title,
+                content: data.content,
+                tags: data.tags,
+                thumbnail: data.thumbnail,
+                published: true
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['lp', lpId] });
+            setIsEditModalOpen(false);
+            alert('LP가 수정되었습니다.');
+        },
+        onError: (error) => {
+            console.error('Failed to update LP:', error);
+            alert('LP 수정에 실패했습니다.');
+        }
+    });
+
+    const handleEditLp = () => {
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateLp = (data: { title: string; content: string; tags: string[]; thumbnail?: string }) => {
+        updateLpMutation.mutate(data);
+    };
+
+    // 좋아요 mutation
+    const likeLpMutation = useLikeLp({
+        lpId: Number(lpId),
+        userId: userInfo?.data?.id,
+    });
+
+    // 현재 사용자가 좋아요를 눌렀는지 확인
+    const isLiked = useMemo(() => {
+        if (!userInfo?.data?.id || !data?.data?.likes) return false;
+        return data.data.likes.some((like) => like.userId === userInfo.data.id);
+    }, [userInfo?.data?.id, data?.data?.likes]);
+
+    const handleLikeToggle = () => {
+        if (!accessToken) {
+            alert('로그인이 필요한 서비스입니다.');
+            return;
+        }
+        likeLpMutation.mutate({ isLiked });
     };
 
     // IntersectionObserver로 댓글 무한 스크롤
@@ -216,23 +347,36 @@ export default function LpDetailPage() {
                 {/* 액션 버튼 */}
                 <div className="flex gap-3 mb-8 pb-8 border-b border-gray-800">
                     <button
-                        className="flex items-center gap-2 px-4 py-2 bg-pink-500 hover:bg-pink-600 rounded-lg transition-colors"
+                        onClick={handleLikeToggle}
+                        disabled={likeLpMutation.isPending}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                            isLiked
+                                ? 'bg-pink-500 hover:bg-pink-600'
+                                : 'bg-gray-700 hover:bg-gray-600'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                        <Heart className="w-5 h-5" />
-                        <span>좋아요</span>
+                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span>{isLiked ? '좋아요 취소' : '좋아요'}</span>
                     </button>
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
-                        <Edit className="w-5 h-5" />
-                        <span>수정</span>
-                    </button>
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                    >
-                        <Trash2 className="w-5 h-5" />
-                        <span>삭제</span>
-                    </button>
+                    {/* 본인 LP일 때만 수정/삭제 버튼 표시 */}
+                    {userInfo?.data?.id === lp.authorId && (
+                        <>
+                            <button
+                                onClick={handleEditLp}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                            >
+                                <Edit className="w-5 h-5" />
+                                <span>수정</span>
+                            </button>
+                            <button
+                                onClick={handleDeleteLp}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                                <span>삭제</span>
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* 본문 내용 */}
@@ -244,7 +388,11 @@ export default function LpDetailPage() {
 
                 {/* 댓글 섹션 */}
                 <div className="border-t border-gray-800 pt-8">
-                    <CommentSection order={order} onOrderChange={handleOrderChange} />
+                    <CommentSection
+                        order={order}
+                        onOrderChange={handleOrderChange}
+                        onSubmit={handleCreateComment}
+                    />
 
                     {/* 댓글 목록 */}
                     <div className="mt-6 space-y-4">
@@ -274,7 +422,13 @@ export default function LpDetailPage() {
                                 ) : (
                                     <>
                                         {commentsData.pages.flatMap((page) => page.data.data).map((comment) => (
-                                            <CommentCard key={comment.id} comment={comment} />
+                                            <CommentCard
+                                                key={comment.id}
+                                                comment={comment}
+                                                currentUserId={userInfo?.data?.id}
+                                                onUpdate={handleUpdateComment}
+                                                onDelete={handleDeleteComment}
+                                            />
                                         ))}
 
                                         {/* 다음 페이지 로딩 상태 - 하단 스켈레톤 */}
@@ -295,6 +449,21 @@ export default function LpDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit LP Modal */}
+            {lp && (
+                <EditLpModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSubmit={handleUpdateLp}
+                    initialData={{
+                        title: lp.title,
+                        content: lp.content,
+                        tags: lp.tags,
+                        thumbnail: lp.thumbnail
+                    }}
+                />
+            )}
         </div>
     );
 }
