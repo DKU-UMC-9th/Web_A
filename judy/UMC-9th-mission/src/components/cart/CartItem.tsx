@@ -1,5 +1,5 @@
 import { useAppDispatch } from '../../store/hooks';
-import { increase, decrease, removeItem } from '../../store/cartSlice';
+import { increase, decrease, removeItem } from '../../features/cart/cartSlice';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface CartItemProps {

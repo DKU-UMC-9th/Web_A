@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { clearCart, calculateTotals } from '../../store/cartSlice';
+import { calculateTotals } from '../../features/cart/cartSlice';
+import { openModal } from '../../features/modal/modalSlice';
 import CartItem from './CartItem';
+import Modal from '../modal/Modal';
 import { ShoppingCart } from 'lucide-react';
 
 const Cart = () => {
@@ -14,14 +16,17 @@ const Cart = () => {
   }, [cartItems, dispatch]);
 
   const handleClearCart = () => {
-    if (window.confirm('장바구니를 전체 삭제하시겠습니까?')) {
-      dispatch(clearCart());
-    }
+    // window.confirm 대신 Redux 모달 열기
+    dispatch(openModal());
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <>
+      {/* 모달 컴포넌트 */}
+      <Modal />
+
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
         {/* 헤더 */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
@@ -80,8 +85,9 @@ const Cart = () => {
             </div>
           </>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
