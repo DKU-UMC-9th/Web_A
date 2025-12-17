@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { postLogout } from "../apis/auth";
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, ShoppingCart } from 'lucide-react';
 import CreateLpModal from "./CreateLpModal";
 import { createLp } from "../apis/lps";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -65,6 +65,15 @@ export default function Header() {
 
                 {/* 오른쪽 - 로그인 상태에 따른 버튼 */}
                 <div className="flex flex-row items-center gap-3">
+                    {/* 장바구니 아이콘 */}
+                    <button
+                        className="p-2 hover:bg-[#1f1f1f] rounded-md transition-colors cursor-pointer"
+                        onClick={() => navigate("/cart")}
+                        aria-label="장바구니"
+                    >
+                        <ShoppingCart className="w-5 h-5" />
+                    </button>
+
                     {accessToken && userInfo?.data ? (
                         <>
                             <div className="text-sm text-white flex flex-row gap-3">
