@@ -1,13 +1,24 @@
 import { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getLpList, type SortOrder } from "../apis/lps";
+import { getLpList, searchLps, type SortOrder } from "../apis/lps";
 import SortButton from "../components/SortButton";
 import LpCard from "../components/LpCard";
 import LpCardSkeleton from "../components/LpCardSkeleton";
+import SearchBar from "../components/SearchBar";
+import ScrollToTopButton from "../components/ScrollToTopButton";
+import { useDebounce } from "../hooks/useDebounce";
 
 export default function HomePage() {
     const [sort, setSort] = useState<SortOrder>("newest");
+    const [searchKeyword, setSearchKeyword] = useState<string>("");
+    const [searchType, setSearchType] = useState<'title' | 'tag'>('title');
     const observerTarget = useRef<HTMLDivElement>(null);
+
+    // 디바운스된 검색어 (300ms 지연)
+    const debouncedSearchKeyword = useDebounce(searchKeyword, 300);
+
+    // 검색어가 있는지 확인 (공백 제거 후)
+    const hasSearchKeyword = debouncedSearchKeyword.trim().length > 0;
 
     const {
         data,
@@ -19,16 +30,45 @@ export default function HomePage() {
         isFetchingNextPage,
         refetch
     } = useInfiniteQuery({
-        queryKey: ['lps', sort],
-        queryFn: ({ pageParam }) => getLpList(sort, pageParam),
+        // queryKey에 디바운스된 검색어 포함
+        queryKey: hasSearchKeyword
+            ? ['lps', 'search', debouncedSearchKeyword, searchType]
+            : ['lps', sort],
+
+        // 검색어가 있으면 검색 API, 없으면 일반 목록 API
+        queryFn: ({ pageParam }) => {
+            if (hasSearchKeyword) {
+                return searchLps({
+                    search: debouncedSearchKeyword.trim(),
+                    type: searchType,
+                    sort,
+                    cursor: pageParam,
+                });
+            }
+            return getLpList(sort, pageParam);
+        },
+
         initialPageParam: undefined as number | undefined,
+
         getNextPageParam: (lastPage) => {
             return lastPage.data.hasNext ? lastPage.data.nextCursor : undefined;
         },
+
+        // 빈 검색어일 때는 항상 실행, 검색어가 있을 때만 조건부 실행
+        enabled: !hasSearchKeyword || debouncedSearchKeyword.trim().length > 0,
+
+        // 캐시 설정 최적화
+        staleTime: 5 * 60 * 1000, // 5분
+        gcTime: 10 * 60 * 1000, // 10분 (이전 cacheTime)
     });
 
     const handleSortChange = (newSort: SortOrder) => {
         setSort(newSort);
+    };
+
+    const handleSearchChange = (keyword: string, type: 'title' | 'tag') => {
+        setSearchKeyword(keyword);
+        setSearchType(type);
     };
 
     // IntersectionObserver로 무한 스크롤 트리거
@@ -79,10 +119,28 @@ export default function HomePage() {
 
     return (
         <div className="p-16 text-white">
-            {/* 정렬 버튼 */}
-            <div className="mb-6 flex justify-end">
-                <SortButton onSortChange={handleSortChange} />
-            </div>
+            {/* 맨 위로 가기 버튼 (useThrottle 적용) */}
+            <ScrollToTopButton />
+
+            {/* 검색 바 */}
+            <SearchBar
+                onSearchChange={handleSearchChange}
+                initialKeyword={searchKeyword}
+                initialSearchType={searchType}
+            />
+
+            {/* 검색 중일 때와 일반 목록일 때 다른 UI */}
+            {hasSearchKeyword ? (
+                <div className="mb-6">
+                    <p className="text-gray-400 text-sm">
+                        "{debouncedSearchKeyword}" 검색 결과 ({searchType === 'title' ? '제목' : '태그'})
+                    </p>
+                </div>
+            ) : (
+                <div className="mb-6 flex justify-end">
+                    <SortButton currentSort={sort} onSortChange={handleSortChange} />
+                </div>
+            )}
 
             {/* 초기 로딩 상태 - 상단 스켈레톤 */}
             {isLoading && (
@@ -94,11 +152,15 @@ export default function HomePage() {
             )}
 
             {/* 데이터 표시 */}
-            {!isLoading && lpList.length === 0 ? (
+            {!isLoading && lpList.length === 0 && (
                 <div className="text-center text-gray-400 py-12">
-                    등록된 LP가 없습니다.
+                    {hasSearchKeyword
+                        ? "검색 결과가 없습니다."
+                        : "등록된 LP가 없습니다."}
                 </div>
-            ) : (
+            )}
+
+            {!isLoading && lpList.length > 0 && (
                 <>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {lpList.map((lp) => (

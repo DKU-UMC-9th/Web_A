@@ -3,14 +3,17 @@ import { useState } from "react";
 interface CommentSectionProps {
     order: "asc" | "desc";
     onOrderChange: (order: "asc" | "desc") => void;
+    onSubmit: (content: string) => void;
 }
 
-export default function CommentSection({ order, onOrderChange }: CommentSectionProps) {
+export default function CommentSection({ order, onOrderChange, onSubmit }: CommentSectionProps) {
     const [comment, setComment] = useState("");
 
     const handleSubmit = () => {
-        // TODO: 댓글 작성 API 호출
-        setComment("");
+        if (comment.trim()) {
+            onSubmit(comment);
+            setComment("");
+        }
     };
 
     return (

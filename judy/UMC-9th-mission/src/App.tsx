@@ -8,6 +8,7 @@ import SignupPage from './pages/SignupPage';
 import MyPage from './pages/MyPage';
 import GoogleLoginRedirectPage from './pages/GoogleLoginRedirectPage';
 import LpDetailPage from './pages/LpDetailPage';
+import CartPage from './pages/CartPage';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedLayout from './layouts/ProtectedLayout';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -27,6 +28,7 @@ const publicRoutes:RouteObject[] = [
       {path: 'login', element: <LoginPage />},
       {path: 'signup', element: <SignupPage />},
       {path: 'lp/:lpId', element: <LpDetailPage />},
+      {path: 'cart', element: <CartPage />},
       {path: 'v1/auth/google/callback', element: <GoogleLoginRedirectPage />},
     ]
   }
@@ -40,6 +42,7 @@ const protectedRoutes:RouteObject[] = [
     errorElement: <NotFoundPage />,
     children: [
       {path: 'my', element: <MyPage />},
+      {path: 'mypage', element: <MyPage />},
     ]
   }
 ];

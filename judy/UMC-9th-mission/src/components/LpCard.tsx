@@ -1,19 +1,34 @@
 import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import type { LpItem } from "../types/lps";
 
 interface LpCardProps {
     lp: LpItem;
 }
 
-export default function LpCard({ lp }: LpCardProps) {
+function LpCard({ lp }: LpCardProps) {
     const navigate = useNavigate();
     const [imageLoaded, setImageLoaded] = useState(false);
 
-    const handleClick = () => {
+    // useCallback으로 클릭 핸들러 메모이제이션
+    const handleClick = useCallback(() => {
         navigate(`/lp/${lp.id}`);
-    };
+    }, [navigate, lp.id]);
+
+    // useCallback으로 이미지 로드 핸들러 메모이제이션
+    const handleImageLoad = useCallback(() => {
+        setImageLoaded(true);
+    }, []);
+
+    // useMemo로 날짜 포맷팅 결과 캐싱
+    const formattedDate = useMemo(() => {
+        return new Date(lp.createdAt).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }, [lp.createdAt]);
 
     return (
         <div
@@ -31,7 +46,7 @@ export default function LpCard({ lp }: LpCardProps) {
             <img
                 src={lp.thumbnail}
                 alt={lp.title}
-                onLoad={() => setImageLoaded(true)}
+                onLoad={handleImageLoad}
                 className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 ${
                     imageLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
@@ -50,11 +65,7 @@ export default function LpCard({ lp }: LpCardProps) {
 
                     {/* 업로드일 */}
                     <p className="text-sm text-gray-300 mb-2">
-                        {new Date(lp.createdAt).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                        {formattedDate}
                     </p>
 
                     {/* 좋아요 */}
@@ -69,3 +80,6 @@ export default function LpCard({ lp }: LpCardProps) {
         </div>
     );
 }
+
+// React.memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
+export default memo(LpCard);
