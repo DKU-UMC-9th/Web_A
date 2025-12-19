@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import MoviePage from './pages/MoviePage'
 import NotFoundPage from './pages/NotFoundPage';
 import MovieDetailPage from './pages/MovieDetailPage';
+import MovieSearchPage from './pages/MovieSearchPage';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 // BroswerRouter v5
@@ -22,6 +23,10 @@ const router= createBrowserRouter([
       {
         path: 'movie/:movieId',
         element: <MovieDetailPage />
+      },
+      {
+        path: 'search',
+        element: <MovieSearchPage />
       }
     ]
   }

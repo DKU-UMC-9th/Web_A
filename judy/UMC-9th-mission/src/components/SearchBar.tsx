@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Search } from 'lucide-react';
 
 type SearchType = 'title' | 'tag';
@@ -9,7 +9,7 @@ interface SearchBarProps {
     initialSearchType?: SearchType;
 }
 
-export default function SearchBar({
+function SearchBar({
     onSearchChange,
     initialKeyword = '',
     initialSearchType = 'title'
@@ -27,31 +27,36 @@ export default function SearchBar({
         setSearchType(initialSearchType);
     }, [initialSearchType]);
 
-    // 입력값이 변경될 때마다 실시간으로 부모에게 전달
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // useCallback으로 입력 핸들러 메모이제이션
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchKeyword(value);
         if (onSearchChange) {
             onSearchChange(value, searchType);
         }
-    };
+    }, [onSearchChange, searchType]);
 
-    // 검색 타입 변경 시에도 부모에게 전달
-    const handleSearchTypeChange = (type: SearchType) => {
+    // useCallback으로 검색 타입 변경 핸들러 메모이제이션
+    const handleSearchTypeChange = useCallback((type: SearchType) => {
         setSearchType(type);
         setIsDropdownOpen(false);
         if (onSearchChange) {
             onSearchChange(searchKeyword, type);
         }
-    };
+    }, [onSearchChange, searchKeyword]);
 
-    // 폼 제출 시 (엔터 키나 검색 버튼 클릭)
-    const handleSubmit = (e: React.FormEvent) => {
+    // useCallback으로 폼 제출 핸들러 메모이제이션
+    const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         if (onSearchChange) {
             onSearchChange(searchKeyword, searchType);
         }
-    };
+    }, [onSearchChange, searchKeyword, searchType]);
+
+    // useCallback으로 드롭다운 토글 핸들러 메모이제이션
+    const toggleDropdown = useCallback(() => {
+        setIsDropdownOpen(prev => !prev);
+    }, []);
 
     return (
         <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto mb-8">
@@ -72,7 +77,7 @@ export default function SearchBar({
                 <div className="relative">
                     <button
                         type="button"
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        onClick={toggleDropdown}
                         className="px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 hover:border-pink-500 transition-all min-w-[100px] flex items-center justify-between gap-2"
                     >
                         <span>{searchType === 'title' ? '제목' : '태그'}</span>
@@ -122,3 +127,6 @@ export default function SearchBar({
         </form>
     );
 }
+
+// React.memo로 감싸서 불필요한 리렌더링 방지
+export default memo(SearchBar);

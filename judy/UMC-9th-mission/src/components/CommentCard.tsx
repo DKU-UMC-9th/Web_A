@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import type { CommentItem } from "../types/comments";
 import { MoreVertical, Edit2, Trash2 } from "lucide-react";
 
@@ -9,25 +9,67 @@ interface CommentCardProps {
     onDelete: (commentId: number) => void;
 }
 
-export default function CommentCard({ comment, currentUserId, onUpdate, onDelete }: CommentCardProps) {
+function CommentCard({ comment, currentUserId, onUpdate, onDelete }: CommentCardProps) {
     const [imageError, setImageError] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(comment.content);
     const [showMenu, setShowMenu] = useState(false);
 
-    const isOwner = currentUserId === comment.author.id;
+    // useMemo로 소유자 확인 결과 캐싱
+    const isOwner = useMemo(() => {
+        return currentUserId === comment.author.id;
+    }, [currentUserId, comment.author.id]);
 
-    const handleUpdate = () => {
+    // useMemo로 날짜 포맷팅 결과 캐싱
+    const formattedDate = useMemo(() => {
+        return new Date(comment.createdAt).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }, [comment.createdAt]);
+
+    // useMemo로 아바타 이니셜 캐싱
+    const avatarInitial = useMemo(() => {
+        return comment.author.name[0].toUpperCase();
+    }, [comment.author.name]);
+
+    // useCallback으로 핸들러 메모이제이션
+    const handleUpdate = useCallback(() => {
         if (editContent.trim() && editContent !== comment.content) {
             onUpdate(comment.id, editContent);
             setIsEditing(false);
         }
-    };
+    }, [editContent, comment.content, comment.id, onUpdate]);
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
         onDelete(comment.id);
         setShowMenu(false);
-    };
+    }, [comment.id, onDelete]);
+
+    const handleImageError = useCallback(() => {
+        setImageError(true);
+    }, []);
+
+    const toggleMenu = useCallback(() => {
+        setShowMenu(prev => !prev);
+    }, []);
+
+    const handleEditClick = useCallback(() => {
+        setIsEditing(true);
+        setShowMenu(false);
+    }, []);
+
+    const handleCancelEdit = useCallback(() => {
+        setIsEditing(false);
+        setEditContent(comment.content);
+    }, [comment.content]);
+
+    const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setEditContent(e.target.value);
+    }, []);
 
     return (
         <div className="flex gap-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors">
@@ -38,11 +80,11 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
                         src={comment.author.avatar}
                         alt={comment.author.name}
                         className="w-10 h-10 rounded-full object-cover"
-                        onError={() => setImageError(true)}
+                        onError={handleImageError}
                     />
                 ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-semibold">
-                        {comment.author.name[0].toUpperCase()}
+                        {avatarInitial}
                     </div>
                 )}
             </div>
@@ -56,13 +98,7 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
                             {comment.author.name}
                         </span>
                         <span className="text-xs text-gray-400">
-                            {new Date(comment.createdAt).toLocaleDateString('ko-KR', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
+                            {formattedDate}
                         </span>
                     </div>
 
@@ -70,7 +106,7 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
                     {isOwner && (
                         <div className="relative">
                             <button
-                                onClick={() => setShowMenu(!showMenu)}
+                                onClick={toggleMenu}
                                 className="p-1 hover:bg-gray-700 rounded transition-colors"
                             >
                                 <MoreVertical className="w-4 h-4 text-gray-400" />
@@ -80,10 +116,7 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
                             {showMenu && (
                                 <div className="absolute right-0 mt-1 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
                                     <button
-                                        onClick={() => {
-                                            setIsEditing(true);
-                                            setShowMenu(false);
-                                        }}
+                                        onClick={handleEditClick}
                                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
                                     >
                                         <Edit2 className="w-4 h-4" />
@@ -107,15 +140,12 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
                     <div className="space-y-2">
                         <textarea
                             value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
+                            onChange={handleContentChange}
                             className="w-full bg-gray-800 text-white rounded-lg p-3 min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
                         />
                         <div className="flex gap-2 justify-end">
                             <button
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    setEditContent(comment.content);
-                                }}
+                                onClick={handleCancelEdit}
                                 className="px-4 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                             >
                                 취소
@@ -137,3 +167,6 @@ export default function CommentCard({ comment, currentUserId, onUpdate, onDelete
         </div>
     );
 }
+
+// React.memo로 감싸서 props가 변경되지 않으면 리렌더링 방지
+export default memo(CommentCard);
