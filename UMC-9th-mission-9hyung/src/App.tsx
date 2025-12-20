@@ -38,6 +38,10 @@ const publicRoutes: RouteObject[] = [
         path: "/v1/auth/google/callback",
         element: <GoogleLoginRedirectPage />,
       },
+      {
+        path: "/lps/:lpid",
+        element: <LpDetailPage />,
+      },
     ],
   },
   
@@ -53,10 +57,7 @@ const protectedRoutes: RouteObject[] = [
         path: "/my",
         element: <MyPage />,
       },
-      {
-        path: "/lps/:lpid",
-        element: <LpDetailPage />,
-      }
+      
     ],
   },
 ];

@@ -4,9 +4,10 @@ import { type UserSigninInformation, validateSignin } from "../utils/validate";
 import useForm from "../hooks/useForm";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSignin } from "../hooks/mutations/useSignin";
 
 const LoginPage = () => {
-  const { login, accessToken } = useAuth();
+  // const { login, accessToken } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,27 +23,44 @@ const LoginPage = () => {
       validiate: validateSignin,
     });
 
-  const handleSubmit = async () => {
-    console.log("🧩 useAuth() 결과:", useAuth);
-    console.log("🧩 useAuth().login:", login);
-    try {
-      await login(values);
+  // const handleSubmit = async () => {
+  //   console.log("🧩 useAuth() 결과:", useAuth);
+  //   console.log("🧩 useAuth().login:", login);
+  //   try {
+  //     await login(values);
+  //     const from = location.state?.from || "/"; // 👈 기본값을 "/" (홈)으로 변경
 
-      // ✅ 로그인 성공 후 원래 경로(from)로 복귀
-      navigate(from, { replace: true });
-    } catch {
-      alert("로그인 실패");
-    }
+  //     // ✅ 로그인 성공 후 원래 경로(from)로 복귀
+  //     navigate(from, { replace: true });
+  //   } catch {
+  //     alert("로그인 실패");
+  //   }
+  // };
+
+  const signin = useSignin();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    signin.mutate(
+      { email: values.email, password: values.password },
+      {
+        onSuccess: () => {
+          navigate(from, { replace: true });
+        },
+      },
+    );
   };
 
   const handleGoogleLogin = () => {
     const redirectUrl =
       import.meta.env.VITE_SERVER_API_URL + "/v1/auth/google/login";
-    
+
     // ✅ 백엔드가 redirect 파라미터를 무시해도 대비용으로 localStorage에 저장
     localStorage.setItem("google_login_redirect_path", from);
     // ✅ 구글 로그인 후 돌아올 redirect도 설정 가능
-    window.location.href = `${redirectUrl}?redirect=${encodeURIComponent(from)}`;
+    window.location.href = `${redirectUrl}?redirect=${encodeURIComponent(
+      from,
+    )}`;
   };
 
   const isDisabled =

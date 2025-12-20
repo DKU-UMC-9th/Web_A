@@ -1,15 +1,19 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSidebar } from "../context/SidebarContext";
 import { useQuery } from "@tanstack/react-query";
 import { type ResponseMyInfoDto } from "../types/auth";
 import { QUERY_KEY } from "../constants/key";
 import { getMyInfo } from "../apis/auth";
+import { useLogout } from "../hooks/mutations/useLogout";
 
 const Navbar = () => {
   const { accessToken, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const { mutate: logoutMutate } = useLogout();
 
   const { data: userData } = useQuery<ResponseMyInfoDto>({
     queryKey: [QUERY_KEY.myInfo],
@@ -18,14 +22,7 @@ const Navbar = () => {
   });
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      
-      navigate("/");
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-      alert("로그아웃에 실패했습니다.");
-    }
+    logoutMutate();
   };
 
   return (
@@ -35,7 +32,7 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={toggleSidebar}
-              className="text-gray-600 " // 태블릿 이상에선 숨김
+              className="text-gray-600 cursor-pointer " // 태블릿 이상에선 숨김
             >
               <svg
                 width="24"
@@ -63,7 +60,7 @@ const Navbar = () => {
           </div>
           <div className="flex items-center gap-1">
             <Link
-              to={"/search"}
+              to={"/"}
               className="text-gray-600 font-semibold hover:text-blue-600  px-3 py-2 rounded-md"
             >
               검색
@@ -74,6 +71,7 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
+                  state={{ from: location.pathname }}
                   className="text-gray-600 font-semibold hover:text-blue-600  px-3 py-2 rounded-md"
                 >
                   로그인
@@ -89,12 +87,18 @@ const Navbar = () => {
               // 로그인 상태
               <>
                 {/* 10. 환영 문구 (첨부한 이미지와 유사하게) */}
-                <span className="text-gray-600 font-semibold px-3 py-2">
-                  {/* userData가 로드되기 전이면 "..." 표시 */}
-                  {userData ? `${userData.data?.name}님 반갑습니다.` : "..."}
+                <span className="font-semibold px-3 py-2 text-gray-600">
+                  {userData ? (
+                    <>
+                      <span className="text-pink-500 font-bold">
+                        {userData.data?.name}
+                      </span>
+                      님 반갑습니다.
+                    </>
+                  ) : (
+                    "..."
+                  )}
                 </span>
-
-                
 
                 <Link
                   to={"/my"}
@@ -105,7 +109,7 @@ const Navbar = () => {
                 {/* 11. 로그아웃 버튼 */}
                 <button
                   onClick={handleLogout}
-                  className="text-gray-600 font-semibold hover:text-blue-600  px-3 py-2 rounded-md"
+                  className="text-gray-600 font-semibold hover:text-blue-600  px-3 py-2 rounded-md cursor-pointer"
                 >
                   로그아웃
                 </button>
@@ -113,7 +117,6 @@ const Navbar = () => {
             )}
 
             {/* 검색 링크는 항상 보이도록 유지 */}
-            
           </div>
         </div>
       </div>
