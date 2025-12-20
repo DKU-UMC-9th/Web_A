@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { useSidebar } from "../context/SidebarContext";
+import useSidebar from "../hooks/useSidebar"; // [!code ++] 새로 만든 훅 import
 import { useDeleteUser } from "../hooks/mutations/useDeleteUser";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
@@ -22,8 +22,8 @@ const Sidebar = () => {
 
       {/* 🔥 사이드바 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-black/85 text-white flex flex-col
-          transform transition-transform duration-300 ease-in-out
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white/90 text-white flex flex-col
+          transform transition-transform duration-300 ease-in-out shadow-2xl rounded-md
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >

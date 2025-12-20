@@ -14,6 +14,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { SidebarProvider } from "./context/SidebarContext.tsx";
 import LpDetailPage from './pages/LpDetailPage.tsx';
+import SearchPage from "./pages/SearchPage.tsx";
 
 
 const publicRoutes: RouteObject[] = [
@@ -42,6 +43,10 @@ const publicRoutes: RouteObject[] = [
         path: "/lps/:lpid",
         element: <LpDetailPage />,
       },
+      {
+        path: "/search",
+        element: <SearchPage />
+      }
     ],
   },
   

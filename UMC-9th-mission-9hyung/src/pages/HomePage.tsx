@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useGetLpList from "../hooks/queries/useGetLpList";
 import { PAGINATION_ORDER, type PaginationOrder } from "../enums/common";
 import type { LpItem } from "../types/lp";
@@ -7,35 +7,44 @@ import LpCard from "../components/LpCard";
 import useGetInfiniteLpList from "../hooks/queries/useGetInfiniteLpList";
 import { useInView } from "react-intersection-observer";
 import AddLpModal from "../components/AddLpModal";
+import SearchBar from "../components/SearchBar";
+import useDebounce from "../hooks/useDebounce";
+import useThrottle from "../hooks/useThrottle";
 
 const LpCardSkeleton = () => (
-  <div className="animate-pulse
+  <div
+    className="animate-pulse
                   bg-neutral-200 dark:bg-neutral-700
                   aspect-square rounded-md
-                  ring-1 ring-black/5 dark:ring-white/10 shadow-sm" />
+                  ring-1 ring-black/5 dark:ring-white/10 shadow-sm"
+  />
 );
 
 const HomePage = () => {
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+
   const navigate = useNavigate();
+  const location = useLocation();
+
 
   // ✅ 정렬 상태: 기본 최신순
   const [sort, setSort] = useState<PaginationOrder>(PAGINATION_ORDER.desc);
-  
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  
 
-  // ref, inView
-  // ref -> 특정한 HTML 요소 감시 가능
-  // inView -> 그 요소가 화면에 보이면 true
-  // const { ref, inView } = useInView({
-  //   threshold: 0,
-  // })
+  const [search, setSearch] = useState("");
 
-  // const { data, isPending, isError, refetch } = useGetLpList({
-  //   order: sort,
-  //   limit: 50,
-  // });
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const [searchBarOpen, setSearchBarOpen] = useState(false);
+
+  const [scrollY, setScrollY] = useState(0);
+
+  const debouncedSearch = useDebounce(search, 500);
+  //const debouncedSearch = useThrottle(search, 1000);
+
+  const throttleScrollY = useThrottle(scrollY, 1000);
 
   const {
     data,
@@ -45,9 +54,21 @@ const HomePage = () => {
     isPending,
     fetchNextPage,
     isError,
-  } = useGetInfiniteLpList(20, "", sort);
+  } = useGetInfiniteLpList(debouncedSearch, sort, 20);
 
-  const observerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (location.state?.openSearch) {
+      setIsSearchOpen(true);
+    }
+  }, [location.state]);
+
+  // ref, inView
+  // ref -> 특정한 HTML 요소 감시 가능
+  // inView -> 그 요소가 화면에 보이면 true
+  // const { ref, inView } = useInView({
+  //   threshold: 0,
+  // })
 
   useEffect(() => {
     if (!observerRef.current) return;
@@ -62,6 +83,21 @@ const HomePage = () => {
     observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [observerRef, hasNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log(`Throttled Scroll Y: ${throttleScrollY}`);
+  }, [throttleScrollY])
 
   // ✅ 정렬 변경 핸들러
   const handleSortChange = (order: PaginationOrder) => setSort(order);
@@ -97,40 +133,50 @@ const HomePage = () => {
 
   return (
     <div className="relative p-4">
-      {/* ✅ 정렬 버튼 2개 */}
-      <div className="flex justify-end gap-2 mb-4">
-        <button
-          onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-            sort === PAGINATION_ORDER.desc
+
+      <div className="flex items-center justify-between mb-5 gap-10">
+
+        <SearchBar search={search} setSearch={setSearch} />
+        {/* ✅ 정렬 버튼 2개 */}
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => handleSortChange(PAGINATION_ORDER.desc)}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${sort === PAGINATION_ORDER.desc
               ? "bg-blue-600 text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          최신순
-        </button>
-        <button
-          onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
-          className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${
-            sort === PAGINATION_ORDER.asc
+              }`}
+          >
+            최신순
+          </button>
+          <button
+            onClick={() => handleSortChange(PAGINATION_ORDER.asc)}
+            className={`px-4 py-2 rounded-md font-semibold transition-colors cursor-pointer ${sort === PAGINATION_ORDER.asc
               ? "bg-blue-600 text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          오래된순
-        </button>
+              }`}
+          >
+            오래된순
+          </button>
+        </div>
       </div>
 
       {/* LP 카드 목록 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* 데이터가 이미 로드된 카드들은 그대로 */}
         {data?.pages.map((page) =>
-          page.data.data.map((lp: LpItem) => <LpCard key={lp.id} lp={lp} />)
+          page.data.data.map((lp: LpItem) => (
+            <LpCard
+              key={lp.id}
+              lp={lp}
+            />
+          )),
         )}
 
         {/* ✅ 다음 페이지 로딩 시에만 하단 스켈레톤 20개 */}
         {isFetchingNextPage &&
-          Array.from({ length: 20 }).map((_, i) => <LpCardSkeleton key={`sk-${i}`} />)}
+          Array.from({ length: 20 }).map((_, i) => (
+            <LpCardSkeleton key={`sk-${i}`} />
+          ))}
       </div>
 
       {/* ✅ 옵저버 감시용 div */}
