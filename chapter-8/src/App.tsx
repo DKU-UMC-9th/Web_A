@@ -1,11 +1,10 @@
 import './App.css'
 import Cart from './components/Cart'
 import Modal from './components/Modal'
-import { useSelector } from 'react-redux'
-import type { RootState } from './store'
+import { usePlaylistStore } from './store/playlistStore'
 
 function App() {
-  const amount = useSelector((state: RootState) => state.cart.amount);
+  const amount = usePlaylistStore((state) => state.amount);
 
   return (
     <div className="min-h-screen bg-gray-50">

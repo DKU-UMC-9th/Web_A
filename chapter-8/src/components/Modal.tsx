@@ -1,24 +1,22 @@
 import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import { closeModal } from '../features/modal/modalSlice';
-import { clearCart } from '../features/cart/cartSlice';
+import { usePlaylistStore } from '../store/playlistStore';
 
 const Modal: React.FC = () => {
-  const dispatch = useDispatch();
-  const isOpen = useSelector((state: RootState) => state.modal.isOpen);
+  const isModalOpen = usePlaylistStore((state) => state.isModalOpen);
+  const closeModal = usePlaylistStore((state) => state.closeModal);
+  const clearCart = usePlaylistStore((state) => state.clearCart);
 
-  if (!isOpen) {
+  if (!isModalOpen) {
     return null;
   }
 
   const handleNo = () => {
-    dispatch(closeModal());
+    closeModal();
   };
 
   const handleYes = () => {
-    dispatch(clearCart());
-    dispatch(closeModal());
+    clearCart();
+    closeModal();
   };
 
   return (

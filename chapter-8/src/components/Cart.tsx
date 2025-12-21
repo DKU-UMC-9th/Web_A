@@ -1,33 +1,36 @@
 import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '../store';
-import { increase, decrease, removeItem, calculateTotals } from '../features/cart/cartSlice';
-import { openModal } from '../features/modal/modalSlice';
+import { usePlaylistStore } from '../store/playlistStore';
 import CartItem from './CartItem';
 import type { CartItem as CartItemType } from '../constants/cartItems';
 
 const Cart: React.FC = () => {
-  const dispatch = useDispatch();
-  const { cartItems, amount, total } = useSelector((state: RootState) => state.cart);
+  const cartItems = usePlaylistStore((state) => state.cartItems);
+  const amount = usePlaylistStore((state) => state.amount);
+  const total = usePlaylistStore((state) => state.total);
+  const increase = usePlaylistStore((state) => state.increase);
+  const decrease = usePlaylistStore((state) => state.decrease);
+  const removeItem = usePlaylistStore((state) => state.removeItem);
+  const openModal = usePlaylistStore((state) => state.openModal);
+  const calculateTotals = usePlaylistStore((state) => state.calculateTotals);
 
   useEffect(() => {
-    dispatch(calculateTotals());
-  }, [cartItems, dispatch]);
+    calculateTotals();
+  }, [cartItems, calculateTotals]);
 
   const handleIncrease = (id: string) => {
-    dispatch(increase(id));
+    increase(id);
   };
 
   const handleDecrease = (id: string) => {
-    dispatch(decrease(id));
+    decrease(id);
   };
 
   const handleRemove = (id: string) => {
-    dispatch(removeItem(id));
+    removeItem(id);
   };
 
   const handleClear = () => {
-    dispatch(openModal());
+    openModal();
   };
 
   return (
