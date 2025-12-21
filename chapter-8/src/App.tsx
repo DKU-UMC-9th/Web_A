@@ -1,5 +1,6 @@
 import './App.css'
 import Cart from './components/Cart'
+import Modal from './components/Modal'
 import { useSelector } from 'react-redux'
 import type { RootState } from './store'
 
@@ -21,6 +22,8 @@ function App() {
       <main className="pt-20">
         <Cart />
       </main>
+
+      <Modal />
     </div>
   )
 }

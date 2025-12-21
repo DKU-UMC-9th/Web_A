@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store';
-import { increase, decrease, removeItem, clearCart, calculateTotals } from '../features/cart/cartSlice';
+import { increase, decrease, removeItem, calculateTotals } from '../features/cart/cartSlice';
+import { openModal } from '../features/modal/modalSlice';
 import CartItem from './CartItem';
 import type { CartItem as CartItemType } from '../constants/cartItems';
 
@@ -26,7 +27,7 @@ const Cart: React.FC = () => {
   };
 
   const handleClear = () => {
-    dispatch(clearCart());
+    dispatch(openModal());
   };
 
   return (
